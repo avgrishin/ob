@@ -1,0 +1,150 @@
+declare @dt smalldatetime = '180704'
+merge tSecurityRate trg
+using (
+ select r.SecurityID, r.RateDate, RateType = 0, Course = r.CourseCurrent, Coupon = 0, Price = 1, PriceFundID = r.SecurityID, PriceCourse = r.CourseCurrent, Nominal = 1, NominalFundID = r.SecurityID
+ from tRate r 
+ where r.RateDate = @dt
+  and r.TradeSystemID = 1
+  union all
+ select SecurityID = 1, RateDate = @dt, RateType = 0, Course = 1, Coupon = 0, Price = 1, PriceFundID = 1, PriceCourse = 1, Nominal = 1, NominalFundID = 1
+
+ union all
+
+ select t.SecurityID, t.RateDate, t.RateType, Course = t.Price*case when t.Class = 2 then t.Nominal/100 else 1 end*rv.CourseCurrent, t.Coupon*rv.CourseCurrent, t.Price, PriceFundID = t.NominalFundID, PriceCource = 1*rv.CourseCurrent, t.Nominal, t.NominalFundID
+ from (
+  select s.SecurityID, RateDate = ep.PriceDate, RateType = 0, Price = coalesce(case when ep.Bid between ep.Low and ep.High then ep.Bid end, ep.Avg, ep.LegalClosePrice), Coupon = coalesce(ep.AccInt, 0), Nominal = ep.Nominal, NominalFundID = case es.CurrencyID when 'SUR' then 1 when 'EUR' then 5 end, s.Class
+  from tExchSecurity es
+   join tSecurity s on (s.ISIN = es.ISIN) and s.IsDeleted = 0
+   join tExchPrice ep on ep.ExchSecurityID = es.ID and ep.PriceDate = @dt
+ ) t
+  outer apply (select top 1 CourseCurrent from tRate where TradeSystemID = 1 and SecurityID = t.NominalFundID and RateDate <= t.RateDate order by RateDate desc) rv
+) src on src.SecurityID = trg.SecurityID and src.RateType = trg.RateType and src.RateDate = trg.RateDate
+when not matched then 
+  insert (SecurityID, RateDate, RateType, Course, Coupon, Price, PriceFundID, PriceCourse, Nominal, NominalFundID)
+ values (SecurityID, RateDate, RateType, Course, Coupon, Price, PriceFundID, PriceCourse, Nominal, NominalFundID)
+when not matched by source and trg.RateType = 0 and trg.RateDate = @dt then
+ delete
+when matched then
+  update set Course = src.Course, Coupon = src.Coupon, Price = src.Price, PriceFundID = src.PriceFundID, PriceCourse = src.PriceCourse, Nominal = src.Nominal, NominalFundID = src.NominalFundID
+;
+
+
+-- ================================================
+-- Template generated from Template Explorer using:
+-- Create Procedure (New Menu).SQL
+--
+-- Use the Specify Values for Template Parameters 
+-- command (Ctrl-Shift-M) to fill in the parameter 
+-- values below.
+--
+-- This block of comments will not be included in
+-- the definition of the procedure.
+-- ================================================
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:        Grishin A.V.
+-- Create date: 09.07.2018
+-- Description:    upCheckDecl 1, '180704'
+-- =============================================
+ALTER PROCEDURE upCheckDecl
+  @InvestDeclID int,
+    @dt smalldatetime
+AS
+    set nocount on;
+  set @dt = coalesce(@dt, cast(getdate() as date))
+
+  declare @t table (TreatyID int primary key)
+  insert @t (TreatyID)
+  select TreatyID = idl.ObjID
+  from tInvestDeclLink idl
+  where idl.InvestDeclID = @InvestDeclID and idl.Enb = 1 and idl.ObjType = 5
+
+  union
+
+  select tr.TreatyID
+  from tInvestDeclLink idl
+   join tTreaty tr on tr.FinInstID = idl.ObjID and tr.IsDisabled = 0
+  where idl.InvestDeclID = @InvestDeclID and idl.Enb = 1 and idl.ObjType = 3
+
+  union
+
+  select pt.TreatyID
+  from tInvestDeclLink idl
+   join tPortfolioTreaty pt on pt.PortfolioID = idl.ObjID and pt.DateStart <= @dt and pt.DateFinish >= @dt
+  where idl.InvestDeclID = @InvestDeclID and idl.Enb = 1 and idl.ObjType = 1
+
+  declare @r table (TreatyID int, FinInstID int, SecurityID int, BankID int, AccType int, Num float, Course float, Coupon float, DateEnd datetime)
+  insert @r (TreatyID, FinInstID, SecurityID, Num, Course, Coupon)
+  select
+    TreatyID = t.Reg3ID,
+    tr.FinInstID,
+    SecurityID = t.ValueID,
+    Num = case s.Class when 0 then -1 else 1 end * t.Num,
+    sr.Course,
+    sr.Coupon
+  from (
+    select r.Reg3ID, r.ValueID, Num = sum(t.Type * t.Value)
+    from @t t1
+     join tODRests r on r.Reg3ID = t1.TreatyID
+     join tODTurns t on t.TDate >= @dt and t.RestID = r.ID
+    group by r.Reg3ID, r.ValueID
+  ) t
+   join tTreaty tr on tr.TreatyID = t.Reg3ID
+   join tSecurity s on s.SecurityID = t.ValueID
+   left join tSecurityRate sr on sr.RateDate = @dt and sr.SecurityID = t.ValueID and RateType = 0
+
+	 select
+			t.FinInstID, t.InvestDeclWhereID, t.Flag_Div,
+			case when idw.FLAG_Group = 1 then sum(t.Num*(t.Course+case t.Flag_Div when 0 then 1 else 0 end*t.Coupon)) end
+	 from (
+		select
+			r.FinInstID,
+			r.SecurityID,
+			IssuerID = case when s.Class = 0 then r.BankID else s.IssuerID end,
+			r.AccType,
+			r.Num,
+			r.Course,
+			r.Coupon,
+			InvestDeclWhereID = coalesce(idw.InvestDeclWhereID, -1),
+			fd.Flag_Div
+		from @r r
+		 join tSecurity s on s.SecurityID = r.SecurityID
+		 cross join (select 0 Flag_Div union select 1) fd
+		 left join tInvestDeclWhere idw on idw.InvestDeclID = @InvestDeclID and idw.Enb = 1 and (fd.Flag_Div = 0 or idw.FLAG_Calculation = 1)
+			and exists (
+				select 1 from tInvestDeclSec ids
+					left join tSecuritySecurityGroup ssg on ssg.SecurityID = s.SecurityID and ssg.SecurityGroupID = ids.ObjID and ssg.IsActive = 1
+				where ids.InvestDeclWhereID = idw.InvestDeclWhereID and ids.FLAG_Div = fd.Flag_Div and ids.Flag_Not = 1 and ids.ObjType = 2 and (ids.ObjID = 3 or ssg.SecurityGroupID is not null or (ids.ObjID = 823 and fd.Flag_Div = 0 and r.AccType = 2) or (ids.ObjID = 834 and fd.Flag_Div = 0 and r.AccType = 1) or (ids.ObjID = 847 and fd.Flag_Div = 0 and r.AccType = 3) or (ids.ObjID = 848 and fd.Flag_Div = 0 and r.AccType = 4) or (ids.ObjID = 897 and fd.Flag_Div = 0 and r.AccType in (3,4) and r.DateEnd <= dateadd(m, 3, @dt))) and ids.Enb = 1
+				union all
+				select 1 from tInvestDeclSec ids
+				where ids.InvestDeclWhereID = idw.InvestDeclWhereID and ids.FLAG_Div = fd.Flag_Div and ids.Flag_Not = 1 and ids.ObjType = 1 and ids.ObjID = s.SecurityID and ids.Enb = 1
+				union all
+				select 1 from tInvestDeclSec ids
+				where ids.InvestDeclWhereID = idw.InvestDeclWhereID and ids.FLAG_Div = fd.Flag_Div and ids.Flag_Not = 1 and ids.ObjType = 3 and ids.ObjID = s.IssuerID and ids.Enb = 1
+				union all
+				select 1 from tInvestDeclSec ids
+					join tObjClsRelation ocr on ocr.ObjClassifierID = ids.ObjID and ocr.ObjectID = s.IssuerID and ocr.ObjType = 741604640
+				where ids.InvestDeclWhereID = idw.InvestDeclWhereID and ids.FLAG_Div = fd.Flag_Div and ids.Flag_Not = 1 and ids.ObjType = 5 and ids.Enb = 1
+			)
+                
+			and not exists (
+				select 1 from tInvestDeclSec ids
+					left join tSecuritySecurityGroup ssg on ssg.SecurityID = s.SecurityID and ssg.SecurityGroupID = ids.ObjID and ssg.IsActive= 1
+				where ids.InvestDeclWhereID = idw.InvestDeclWhereID and ids.FLAG_Div = fd.Flag_Div and ids.Flag_Not = 0 and ids.ObjType = 2 and (ssg.SecurityGroupID is not null or (ids.ObjID = 823 and fd.Flag_Div = 0 and r.AccType = 2) or (ids.ObjID = 834 and fd.Flag_Div = 0 and r.AccType = 1) or (ids.ObjID = 847 and fd.Flag_Div = 0 and r.AccType = 3) or (ids.ObjID = 848 and fd.Flag_Div = 0 and r.AccType = 4) or (ids.ObjID = 897 and fd.Flag_Div = 0 and r.AccType in (3,4) and r.DateEnd <= dateadd(m, 3, @dt))) and ids.Enb = 1
+				union all
+				select 1 from tInvestDeclSec ids
+				where ids.InvestDeclWhereID = idw.InvestDeclWhereID and ids.FLAG_Div = fd.Flag_Div and ids.Flag_Not = 0 and ids.ObjType = 1 and ids.ObjID = s.SecurityID and ids.Enb = 1
+				union all
+				select 1 from tInvestDeclSec ids
+				where ids.InvestDeclWhereID = idw.InvestDeclWhereID and ids.FLAG_Div = fd.Flag_Div and ids.Flag_Not = 0 and ids.ObjType = 3 and ids.ObjID = s.IssuerID /*case when s.SecType = 4 and t1.UniqueFlag in (1,ids.InvestDeclWhereID = idw1.InvestDeclWhereID and  3) then t1.BankID else s.IssuerID end*/ and ids.Enb = 1
+				union all
+				select 1 from tInvestDeclSec ids
+					join tObjClsRelation ocr on ocr.ObjClassifierID = ids.ObjID and ocr.ObjectID = s.IssuerID and ocr.ObjType = 741604640
+				where ids.InvestDeclWhereID = idw.InvestDeclWhereID and ids.FLAG_Div = fd.Flag_Div and ids.Flag_Not = 0 and ids.ObjType = 5 and ids.Enb = 1
+			)
+		) t
+		 left join tInvestDeclWhere idw on idw.InvestDeclWhereID = t.InvestDeclWhereID
+		group by t.FinInstID, t.InvestDeclWhereID, t.Flag_Div, idw.FLAG_Group

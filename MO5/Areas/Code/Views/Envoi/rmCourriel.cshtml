@@ -1,0 +1,52 @@
+﻿@model dynamic
+@functions {
+  public dynamic q { get; set; }
+  public int i { get; set; }
+}
+
+<style>
+  table {
+    border-collapse: collapse;
+    border: 1px solid gray;
+  }
+
+  td, span, th {
+    font-size: .8em;
+    font-family: Verdana, Helvetica, Sans-Serif;
+    text-align: left;
+  }
+
+  span {
+    font-style: italic;
+  }
+
+  th {
+    font-size: .7em;
+  }
+</style>
+@{int i = 1;
+<h4>Дирекция риск-менеджмента обращает внимание на необходимость соблюдения следующих операционных контролей</h4>
+<table>
+  <tr>
+    <th>Структурное подразделение</th>
+    <th>Бизнес процесс</th>
+    <th>Риск наименование</th>
+    <th>@(i == 0 ? "Цель" : "Контроль")</th>
+    @(i == 0 ? "<th>Владелец цели</th>" : "")
+    <th>Владелец контроля</th>
+  </tr>
+  @foreach (var qq in Model.q)
+  {
+    <tr>
+      <td>@qq.Dep</td>
+      <td>@qq.BisProc</td>
+      <td>@qq.RiskName</td>
+      <td>@qq.c1</td>
+      @(i == 0 ? "<td>" + @qq.PossesseurBut + "</td>" : "")
+      <td>@qq.PossesseurControl</td>
+    </tr>
+  }
+</table>
+<br>
+<span>Дирекция риск-менеджмента</span>
+  }

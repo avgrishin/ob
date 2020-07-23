@@ -1,0 +1,693 @@
+
+e:\user\rar a mo5d mo5 -xmo5\bin -xmo5\obj -xmo5\scripts
+
+USE [MiddleOffice]
+GO
+/****** Object:  StoredProcedure [dbo].[upCheckDecl]    Script Date: 12.09.2018 18:00:05 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:        Grishin A.V.
+-- Create date: 09.07.2018
+-- Description:    upCheckDecl 1, '180704'
+-- =============================================
+ALTER PROCEDURE [dbo].[upCheckDecl]
+  @InvestDeclID int,
+  @dt smalldatetime,
+	@withMD bit = 0,
+	@UserID uniqueidentifier = null,
+  @ErrorsOnly bit = 0
+AS
+  set nocount on;
+  set @dt = coalesce(@dt, cast(getdate() as date))
+
+  declare @t dbo.typeID
+  insert @t (ID)
+  select TreatyID = idl.ObjID
+  from tInvestDeclLink idl
+  where idl.InvestDeclID = @InvestDeclID and idl.Enb = 1 and idl.ObjType = 5
+
+  union
+
+  select tr.TreatyID
+  from tInvestDeclLink idl
+   join tTreaty tr on tr.FinInstID = idl.ObjID and tr.IsDisabled = 0
+  where idl.InvestDeclID = @InvestDeclID and idl.Enb = 1 and idl.ObjType = 3
+
+  union
+
+  select pt.TreatyID
+  from tInvestDeclLink idl
+   join tPortfolioTreaty pt on pt.PortfolioID = idl.ObjID and pt.DateStart <= @dt and pt.DateFinish >= @dt
+  where idl.InvestDeclID = @InvestDeclID and idl.Enb = 1 and idl.ObjType = 1
+
+  declare @r table (TreatyID int, FinInstID int, SecurityID int, BankID int, AccType int, Num float, Course float, Coupon float, DateEnd datetime)
+  insert @r (TreatyID, FinInstID, SecurityID, Num, Course, Coupon, AccType)
+  select TreatyID, FinInstID, SecurityID, Num, Course, Coupon, AccType from dbo.tfGetRest(@t, @dt, @withMD, @UserID)
+ -- select
+ --   TreatyID = t.Reg3ID,
+ --   tr.FinInstID,
+ --   SecurityID = t.ValueID,
+ --   Num = case s.Class when 0 then -1 else 1 end * t.Num,
+ --   sr.Course,
+ --   sr.Coupon,
+ --   AccType = case when t.BalAccID = 2774 then 1 when t.BalAccID = 2820 then 2 end
+ -- from (
+ --   select r.BalAccID, r.Reg3ID, r.ValueID, Num = sum(t.Type * t.Value)
+ --   from @t t1
+ --    join tODRests r on r.Reg3ID = t1.TreatyID
+ --    join tODTurns t on t.TDate >= @dt and t.RestID = r.ID
+ --   group by r.BalAccID, r.Reg3ID, r.ValueID
+ -- ) t
+ --  join tTreaty tr on tr.TreatyID = t.Reg3ID
+ --  join tSecurity s on s.SecurityID = t.ValueID
+ --  left join tSecurityRate sr on sr.RateDate = @dt and sr.SecurityID = t.ValueID and RateType = 0
+  
+	--if @withMD = 1
+	--begin
+	--	insert @r (TreatyID, FinInstID, SecurityID, Num, Course, Coupon, AccType)
+	--	select
+	--		md.TreatyID,
+	--		t.FinInstID,
+	--		md.SecurityID,
+	--		md.Num*(2*md.Direction-1),
+	--		sr.Course,
+	--		sr.Coupon,
+	--		AccType = null
+	--	from tModDeal md
+	--	 join @t t1 on t1.TreatyID = md.TreatyID
+	--	 join tTreaty t on t.TreatyID = md.TreatyID
+	--	 left join tSecurityRate sr on sr.RateDate = @dt and sr.SecurityID = md.SecurityID and sr.RateType = 0
+	--	where md.UserId = @UserID and md.DealDate = @dt
+
+	--	union all
+
+	--	select
+	--		md.TreatyID,
+	--		t.FinInstID,
+	--		md.FundID,
+	--		md.Qty*(1-2*md.Direction),
+	--		sr.Course,
+	--		0,
+	--		AccType = 2
+	--	from tModDeal md
+	--	 join @t t1 on t1.TreatyID = md.TreatyID
+	--	 join tTreaty t on t.TreatyID = md.TreatyID
+	--	 left join tSecurityRate sr on sr.RateDate = @dt and sr.SecurityID = md.FundID and sr.RateType = 0
+	--	where md.UserId = @UserID and md.DealDate = @dt
+	--end
+
+  declare @d table (
+    FinInstID int,
+    SecurityID int,
+    IssuerID int,
+    AccType int,
+    Num float,
+    Course float,
+    Coupon float,
+    InvestDeclID int,
+    InvestDeclWhereID int,
+    Flag_Group int,
+    Flag_Div int,
+    FLAG_Calculation int
+  )
+  insert @d (FinInstID, SecurityID, IssuerID, AccType, Num, Course, Coupon, InvestDeclID, InvestDeclWhereID, Flag_Group, Flag_Div, FLAG_Calculation)
+	select
+		FinInstID = r.FinInstID, --case when idw.FLAG_Group = 18 /*Лимит на контрагента*/ then -1 else r.FinInstID end,
+		r.SecurityID,
+		IssuerID = case when s.Class = 0 then r.BankID else s.IssuerID end,
+		r.AccType,
+		r.Num,
+		r.Course,
+		r.Coupon,
+    @InvestDeclID,
+		InvestDeclWhereID = coalesce(idw.InvestDeclWhereID, -1),
+    idw.FLAG_Group,
+		fd.Flag_Div,
+    idw.FLAG_Calculation
+	from @r r
+		join tSecurity s on s.SecurityID = r.SecurityID
+		cross join (select 0 Flag_Div union select 1) fd
+		left join tInvestDeclWhere idw on idw.InvestDeclID = @InvestDeclID and idw.Enb = 1 and (fd.Flag_Div = 0 or idw.FLAG_Calculation = 1)
+		and exists (
+			select 1 from tInvestDeclSec ids
+				left join tSecuritySecurityGroup ssg on ssg.SecurityID = s.SecurityID and ssg.SecurityGroupID = ids.ObjID and ssg.IsActive = 1
+			where ids.InvestDeclWhereID = idw.InvestDeclWhereID and ids.FLAG_Div = fd.Flag_Div and ids.Flag_Not = 1 and ids.ObjType = 2 and (ids.ObjID = 3 or ssg.SecurityGroupID is not null or (ids.ObjID = 5 and fd.Flag_Div = 0 and r.AccType = 2) or (ids.ObjID = 4 and fd.Flag_Div = 0 and r.AccType = 1) or (ids.ObjID = 847 and fd.Flag_Div = 0 and r.AccType = 3) or (ids.ObjID = 848 and fd.Flag_Div = 0 and r.AccType = 4) or (ids.ObjID = 897 and fd.Flag_Div = 0 and r.AccType in (3,4) and r.DateEnd <= dateadd(m, 3, @dt))) and ids.Enb = 1
+			union all
+			select 1 from tInvestDeclSec ids
+			where ids.InvestDeclWhereID = idw.InvestDeclWhereID and ids.FLAG_Div = fd.Flag_Div and ids.Flag_Not = 1 and ids.ObjType = 1 and ids.ObjID = s.SecurityID and ids.Enb = 1
+			union all
+			select 1 from tInvestDeclSec ids
+			where ids.InvestDeclWhereID = idw.InvestDeclWhereID and ids.FLAG_Div = fd.Flag_Div and ids.Flag_Not = 1 and ids.ObjType = 3 and ids.ObjID = s.IssuerID and ids.Enb = 1
+			union all
+			select 1 from tInvestDeclSec ids
+				join tObjClsRelation ocr on ocr.ObjClassifierID = ids.ObjID and ocr.ObjectID = s.IssuerID and ocr.ObjType = 741604640
+			where ids.InvestDeclWhereID = idw.InvestDeclWhereID and ids.FLAG_Div = fd.Flag_Div and ids.Flag_Not = 1 and ids.ObjType = 5 and ids.Enb = 1
+		)
+                
+		and not exists (
+			select 1 from tInvestDeclSec ids
+				left join tSecuritySecurityGroup ssg on ssg.SecurityID = s.SecurityID and ssg.SecurityGroupID = ids.ObjID and ssg.IsActive= 1
+			where ids.InvestDeclWhereID = idw.InvestDeclWhereID and ids.FLAG_Div = fd.Flag_Div and ids.Flag_Not = 0 and ids.ObjType = 2 and (ssg.SecurityGroupID is not null or (ids.ObjID = 823 and fd.Flag_Div = 0 and r.AccType = 2) or (ids.ObjID = 834 and fd.Flag_Div = 0 and r.AccType = 1) or (ids.ObjID = 847 and fd.Flag_Div = 0 and r.AccType = 3) or (ids.ObjID = 848 and fd.Flag_Div = 0 and r.AccType = 4) or (ids.ObjID = 897 and fd.Flag_Div = 0 and r.AccType in (3,4) and r.DateEnd <= dateadd(m, 3, @dt))) and ids.Enb = 1
+			union all
+			select 1 from tInvestDeclSec ids
+			where ids.InvestDeclWhereID = idw.InvestDeclWhereID and ids.FLAG_Div = fd.Flag_Div and ids.Flag_Not = 0 and ids.ObjType = 1 and ids.ObjID = s.SecurityID and ids.Enb = 1
+			union all
+			select 1 from tInvestDeclSec ids
+			where ids.InvestDeclWhereID = idw.InvestDeclWhereID and ids.FLAG_Div = fd.Flag_Div and ids.Flag_Not = 0 and ids.ObjType = 3 and ids.ObjID = s.IssuerID /*case when s.SecType = 4 and t1.UniqueFlag in (1,ids.InvestDeclWhereID = idw1.InvestDeclWhereID and  3) then t1.BankID else s.IssuerID end*/ and ids.Enb = 1
+			union all
+			select 1 from tInvestDeclSec ids
+				join tObjClsRelation ocr on ocr.ObjClassifierID = ids.ObjID and ocr.ObjectID = s.IssuerID and ocr.ObjType = 741604640
+			where ids.InvestDeclWhereID = idw.InvestDeclWhereID and ids.FLAG_Div = fd.Flag_Div and ids.Flag_Not = 0 and ids.ObjType = 5 and ids.Enb = 1
+		)
+    where (fd.Flag_Div = 0 or idw.InvestDeclWhereID is not null)
+		--select * from @d where Flag_Div = 0
+
+  select
+    t.FinInstID,
+    t.InvestDeclWhereID,
+    NameWhere = case when t.InvestDeclWhereID = -1 then 'Недопустимый актив' else idw.NameWhere end,
+    fiName = fi.Name,
+    t.FLAG_Group,
+    FGName = idgt.Name,
+    t.FLAG_Calculation,
+		t.numerator,
+		t.denominator,
+		t.coef,
+    idw.StartValue,
+    idw.StopValue,
+    d.SecurityID,
+    SecName = s.Name,
+    d.Num,
+    d.Course,
+    Qty = d.Num*d.Course,
+    coefS = 
+      case 
+			when t.Flag_Group in (1, 2, 18) then d.Num*d.Course*case d.FLAG_Calculation when 0 then 1 when 1 then 100/nullif(t.denominator, 0) end
+      --when t.Flag_Group in (2, 18) then cast(t.numerator as float)/nullif(t.denominator, 0)*case when t.FLAG_Calculation = 1 then 100 else 1 end
+      when t.Flag_Group in (3) then (select sum(d1.Num*d1.Course) from @d d1 where d1.InvestDeclWhereID = d.InvestDeclWhereID and d1.IssuerID = d.IssuerID and d1.Flag_Div = 0 and d1.SecurityID = d.SecurityID)*case d.FLAG_Calculation when 0 then 1 when 1 then 100/nullif(t.denominator, 0) end
+			end,
+    t.error
+  from (
+    select
+      t.FinInstID,
+      t.InvestDeclWhereID,
+      t.FLAG_Group,
+      t.FLAG_Calculation,
+      t.numerator,
+      t.denominator,
+      t.coef,
+      error = case when t.coef not between idw.StartValue and idw.StopValue then 1 else 0 end
+    from (
+      select
+        t.FinInstID,
+        t.InvestDeclWhereID,
+        t.FLAG_Group,
+        t.FLAG_Calculation,
+        t.numerator,
+        t.denominator,
+        coef = cast(coalesce(t.numerator, 0) as float)*case when t.FLAG_Calculation = 1 then 100/nullif(t.denominator, 0) else 1 end
+      from (
+        select
+          t.FinInstID,
+          t.InvestDeclWhereID,
+          t.FLAG_Group,
+          t.FLAG_Calculation,
+          numerator = case
+            when t.FLAG_Group in (1, 3) then max(t.QtyN)
+            when t.FLAG_Group in (2) then sum(t.QtyN)
+            else sum(t.QtyN)
+            --when d.FLAG_Group in (3) then (select max(Qty) from (select Qty = sum(d.Num*d.Course) from @d d where d.FinInstID = tr.FinInstID and d.InvestDeclWhereID = idw.InvestDeclWhereID and d.Flag_Div = 0 group by d.IssuerID) t)
+            end,
+          denominator = case when t.FLAG_Calculation = 1 then sum(t.QtyD) end
+        from (
+          select
+            FinInstID = case when idw.FLAG_Group = 18 /*Лимит на контрагента*/ then -1 else coalesce(tr.FinInstID, d.FinInstID) end,
+            InvestDeclWhereID = coalesce(idw.InvestDeclWhereID, d.InvestDeclWhereID),
+            idw.FLAG_Group,
+            idw.FLAG_Calculation,
+            QtyN = sum(case when d.Flag_Div = 0 then d.Num*d.Course end),
+            QtyD = case when idw.FLAG_Calculation = 1 then sum(case when d.Flag_Div = 1 then d.Num*(d.Course+d.Coupon) end) else 0 end
+          from @d d
+           full join tInvestDeclWhere idw cross join @t t join tTreaty tr on tr.TreatyID = t.ID on idw.InvestDeclWhereID = d.InvestDeclWhereID and tr.FinInstID = d.FinInstID
+          group by
+            case when idw.FLAG_Group = 18 /*Лимит на контрагента*/ then -1 else coalesce(tr.FinInstID, d.FinInstID) end,
+            coalesce(idw.InvestDeclWhereID, d.InvestDeclWhereID),
+            idw.FLAG_Group,
+            idw.FLAG_Calculation,
+            case when idw.FLAG_Group in (3) then d.IssuerID else d.SecurityID end,
+            d.AccType
+        ) t
+        group by 
+          t.FinInstID,
+          t.InvestDeclWhereID,
+          t.FLAG_Group,
+          t.FLAG_Calculation
+      ) t
+    ) t
+     left join tInvestDeclWhere idw on idw.InvestDeclWhereID = t.InvestDeclWhereID
+  ) t
+   left join tInvestDeclWhere idw on idw.InvestDeclWhereID = t.InvestDeclWhereID
+   left join @d d on t.error = 1 and d.InvestDeclWhereID = t.InvestDeclWhereID and (d.FinInstID = t.FinInstID or t.FinInstID = -1) and d.Flag_Div = 0 and
+   (  (case when d.Flag_Group in (1) then (select sum(d1.Num*d1.Course) from @d d1 where d1.InvestDeclWhereID = d.InvestDeclWhereID and d1.FinInstID = d.FinInstID and d1.Flag_Div = 0 and d1.SecurityID = d.SecurityID)*case d.FLAG_Calculation when 0 then 1 when 1 then 100/nullif(t.denominator, 0) end end not between idw.StartValue and idw.StopValue)
+   or d.Flag_Group in (2, 18)
+   or (case when d.Flag_Group in (3) then (select sum(d1.Num*d1.Course) from @d d1 where d1.InvestDeclWhereID = d.InvestDeclWhereID and d1.IssuerID = d.IssuerID and d1.Flag_Div = 0 and d1.SecurityID = d.SecurityID)*case d.FLAG_Calculation when 0 then 1 when 1 then 100/nullif(t.denominator, 0) end end not between idw.StartValue and idw.StopValue)
+   or t.InvestDeclWhereID = -1
+   )
+   left join tSecurity s on s.SecurityID = d.SecurityID
+   left join tFinInst fi on fi.FinInstID = t.FinInstID
+   left join tInvestDeclGroupType idgt on idgt.ID = t.Flag_Group
+  where (@ErrorsOnly = 0 or t.error = 1)
+    --select * from @d d where d.Flag_Div = 0
+-- upCheckDecl 1, '180821'
+
+
+
+USE [MiddleOffice]
+GO
+/****** Object:  StoredProcedure [dbo].[upGetRests]    Script Date: 04.09.2018 17:04:37 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		Grishin A.V.
+-- Create date: 29.08.2018
+-- Description:	declare @t dbo.typeID insert @t values (27943),(27942) exec upGetRests @t, '180704'
+-- =============================================
+ALTER PROCEDURE [dbo].[upGetRests] 
+	@t dbo.typeID readonly,
+  @dt smalldatetime,
+	@withMD bit = 0,
+	@UserID uniqueidentifier = null,
+  @IsGroupSec bit = 0
+AS
+	set nocount on;
+  --declare @t dbo.typeID
+  set @dt = coalesce(@dt, cast(getdate() as date))
+
+  select
+    r.TreatyID,
+    trName = t.Name,
+    t.FinInstID,
+    clName = f.Name,
+    r.SecurityID,
+    secName = s.Name,
+    s.ISIN,
+    s.RegNumber,
+    s.Class,
+    ClassName = st.Name,
+    s.DateEnd,
+    Issuer = e.Name,
+    IssuerINN = e.INN,
+    r.Num,
+    r.Course,
+    r.Coupon,
+    r.AccType,
+    Account = case r.AccType when 1  then 'Расчетный' when 2 then 'Брокерский' when 3 then 'Депозитный' else '' end,
+    Qty = cast(r.Num*(r.Course+r.Coupon) as decimal(18,2))
+  from (
+    select
+      r.SecurityID,
+      r.AccType,
+      r.BankID,
+      r.DateEnd,
+      TreatyID = case @IsGroupSec when 0 then r.TreatyID end,
+      Coupon = max(r.Coupon),
+      Course = max(r.Course),
+      Num = sum(r.Num)
+    from dbo.tfGetRest(@t, @dt, @withMD, @UserID) r
+    group by r.SecurityID, r.AccType, r.BankID, r.DateEnd, case @IsGroupSec when 0 then r.TreatyID end
+  ) r
+   left join tTreaty t on t.TreatyID = r.TreatyID
+   left join tFinInst f on f.FinInstID = t.FinInstID
+   left join tSecurity s on s.SecurityID = r.SecurityID
+   left join tFinInst e on e.FinInstID = s.IssuerID
+   left join tSecType st on st.SecTypeID = s.Class
+ 
+
+ 
+
+
+USE [MiddleOffice]
+GO
+/****** Object:  UserDefinedFunction [dbo].[tfGetRest]    Script Date: 28.08.2018 16:53:36 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		Grishin A.V.
+-- Create date: 28.08.2018
+-- Description:	
+-- =============================================
+ALTER FUNCTION [dbo].[tfGetRest] 
+(
+	@t dbo.typeID readonly,
+  @dt smalldatetime,
+	@withMD bit = 0,
+	@UserID uniqueidentifier = null
+)
+returns @r table (TreatyID int, FinInstID int, SecurityID int, BankID int, AccType int, Num float, Course float, Coupon float, DateEnd datetime)
+as
+begin
+insert @r (TreatyID, FinInstID, SecurityID, Num, Course, Coupon, AccType)
+  select
+    TreatyID = t.Reg3ID,
+    tr.FinInstID,
+    SecurityID = t.ValueID,
+    Num = case s.Class when 0 then -1 else 1 end * t.Num,
+    sr.Course,
+    sr.Coupon,
+    AccType = case when t.BalAccID = 2774 then 1 when t.BalAccID = 2820 then 2 end
+  from (
+    select r.BalAccID, r.Reg3ID, r.ValueID, Num = sum(t.Type * t.Value)
+    from @t t1
+     join tODRests r on r.Reg3ID = t1.ID
+     join tODTurns t on t.TDate >= @dt and t.RestID = r.ID
+    group by r.BalAccID, r.Reg3ID, r.ValueID
+  ) t
+   join tTreaty tr on tr.TreatyID = t.Reg3ID
+   join tSecurity s on s.SecurityID = t.ValueID
+   left join tSecurityRate sr on sr.RateDate = @dt and sr.SecurityID = t.ValueID and RateType = 0
+  
+	if @withMD = 1
+	begin
+		insert @r (TreatyID, FinInstID, SecurityID, Num, Course, Coupon, AccType)
+		select
+			md.TreatyID,
+			t.FinInstID,
+			md.SecurityID,
+			md.Num*(2*md.Direction-1),
+			sr.Course,
+			sr.Coupon,
+			AccType = null
+		from tModDeal md
+		 join @t t1 on t1.ID = md.TreatyID
+		 join tTreaty t on t.TreatyID = md.TreatyID
+		 left join tSecurityRate sr on sr.RateDate = @dt and sr.SecurityID = md.SecurityID and sr.RateType = 0
+		where md.UserId = @UserID and md.DealDate = @dt
+
+		union all
+
+		select
+			md.TreatyID,
+			t.FinInstID,
+			md.FundID,
+			md.Qty*(1-2*md.Direction),
+			sr.Course,
+			0,
+			AccType = 2
+		from tModDeal md
+		 join @t t1 on t1.ID = md.TreatyID
+		 join tTreaty t on t.TreatyID = md.TreatyID
+		 left join tSecurityRate sr on sr.RateDate = @dt and sr.SecurityID = md.FundID and sr.RateType = 0
+		where md.UserId = @UserID and md.DealDate = @dt
+	end	
+	return 
+end
+
+-- ================================================
+-- Template generated from Template Explorer using:
+-- Create Multi-Statement Function (New Menu).SQL
+--
+-- Use the Specify Values for Template Parameters 
+-- command (Ctrl-Shift-M) to fill in the parameter 
+-- values below.
+--
+-- This block of comments will not be included in
+-- the definition of the function.
+-- ================================================
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		Grishin A.V.
+-- Create date: 07.08.2018
+-- Description:	
+-- =============================================
+CREATE FUNCTION tfAddWorkDate 
+(
+	@dt smalldatetime, 
+	@days int
+)
+RETURNS @t TABLE (wd smalldatetime)
+as
+begin
+  if @days < 0
+    insert @t(wd)
+	  select min(WorkDate) from (select top (-@days) WorkDate from tWorkDate where WorkDate < @dt order by WorkDate desc) t
+  else
+    insert @t(wd)
+    select max(WorkDate) from (select top (@days+1) WorkDate from tWorkDate where WorkDate >= @dt order by WorkDate) t
+	return 
+end
+GO
+
+-- ================================================
+-- Template generated from Template Explorer using:
+-- Create Scalar Function (New Menu).SQL
+--
+-- Use the Specify Values for Template Parameters 
+-- command (Ctrl-Shift-M) to fill in the parameter 
+-- values below.
+--
+-- This block of comments will not be included in
+-- the definition of the function.
+-- ================================================
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		Grishin A.V.
+-- Create date: 13.08.2018
+-- Description:	select dbo.ufEmailToStr('AVGrishin@gmail.com, avgrishin@list.ru')
+-- =============================================
+ALTER FUNCTION ufEmailToStr 
+(
+	@Email varchar(4000)
+)
+RETURNS varchar(4000)
+AS
+BEGIN
+	return reverse(substring(reverse((select Lname+', ' as "*" from taLib where LConcept = 458622 and LParent = 458622 and @Email like '%'+LName1+'%' for xml path(''))), 3, 4000))
+END
+GO
+
+CREATE TYPE [dbo].[typeID] AS TABLE(
+	[ID] [int] NOT NULL,
+	PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (IGNORE_DUP_KEY = OFF)
+)
+
+
+USE [MiddleOffice]
+GO
+/****** Object:  UserDefinedFunction [dbo].[tfGetRest]    Script Date: 28.08.2018 17:21:52 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		Grishin A.V.
+-- Create date: 28.08.2018
+-- Description:	
+-- =============================================
+ALTER FUNCTION [dbo].[tfGetRest] 
+(
+	@t dbo.typeID readonly,
+  @dt smalldatetime,
+	@withMD bit = 0,
+	@UserID uniqueidentifier = null
+)
+returns @r table (TreatyID int, FinInstID int, SecurityID int, BankID int, AccType int, Num float, Course float, Coupon float, DateEnd datetime)
+as
+begin
+insert @r (TreatyID, FinInstID, SecurityID, Num, Course, Coupon, AccType)
+  select
+    TreatyID = t.Reg3ID,
+    tr.FinInstID,
+    SecurityID = t.ValueID,
+    Num = case s.Class when 0 then -1 else 1 end * t.Num,
+    sr.Course,
+    sr.Coupon,
+    AccType = case when t.BalAccID = 2774 then 1 when t.BalAccID = 2820 then 2 end
+  from (
+    select r.BalAccID, r.Reg3ID, r.ValueID, Num = sum(t.Type * t.Value)
+    from @t t1
+     join tODRests r on r.Reg3ID = t1.ID
+     join tODTurns t on t.TDate >= @dt and t.RestID = r.ID
+    group by r.BalAccID, r.Reg3ID, r.ValueID
+  ) t
+   join tTreaty tr on tr.TreatyID = t.Reg3ID
+   join tSecurity s on s.SecurityID = t.ValueID
+   left join tSecurityRate sr on sr.RateDate = @dt and sr.SecurityID = t.ValueID and RateType = 0
+  
+	if @withMD = 1
+	begin
+		insert @r (TreatyID, FinInstID, SecurityID, Num, Course, Coupon, AccType)
+		select
+			md.TreatyID,
+			t.FinInstID,
+			md.SecurityID,
+			md.Num*(2*md.Direction-1),
+			sr.Course,
+			sr.Coupon,
+			AccType = null
+		from tModDeal md
+		 join @t t1 on t1.ID = md.TreatyID
+		 join tTreaty t on t.TreatyID = md.TreatyID
+		 left join tSecurityRate sr on sr.RateDate = @dt and sr.SecurityID = md.SecurityID and sr.RateType = 0
+		where md.UserId = @UserID and md.DealDate = @dt
+
+		union all
+
+		select
+			md.TreatyID,
+			t.FinInstID,
+			md.FundID,
+			md.Qty*(1-2*md.Direction),
+			sr.Course,
+			0,
+			AccType = 2
+		from tModDeal md
+		 join @t t1 on t1.ID = md.TreatyID
+		 join tTreaty t on t.TreatyID = md.TreatyID
+		 left join tSecurityRate sr on sr.RateDate = @dt and sr.SecurityID = md.FundID and sr.RateType = 0
+		where md.UserId = @UserID and md.DealDate = @dt
+	end	
+	return 
+end
+
+
+USE [MiddleOffice]
+GO
+/****** Object:  UserDefinedFunction [dbo].[uf_avgGetCoupon]    Script Date: 14.08.2018 13:54:58 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		Grishin A.V.
+-- Create date: 18.11.2008
+-- Description:	Выборка купона по ИД, дате, валюте
+-- =============================================
+ALTER function [dbo].[uf_avgGetCoupon] 
+(
+	@SecurityID int,
+	@Date smalldatetime,
+	@FundID int
+)
+returns float
+as
+begin
+	declare @Result float, @CouponFundID int, @SecType int, @RatedSecurityID int, @Nominal float, @CouponYear int, @Course1 float, @Course2 float
+
+	select 
+		@SecType = SecType, 
+		@RatedSecurityID = RatedSecurityID, 
+		@Nominal = isnull((select top 1 Nominal from tAmortization where SecurityID = @SecurityID and AmortizationDate <= @Date order by AmortizationDate desc), Nominal),
+		@CouponYear = CouponYear
+	from tSecurity 
+	where SecurityID = @SecurityID
+
+	if @SecType = 2
+	begin
+		
+		if datediff(dy, @Date, (select systemdate from v_getdate)) <> 0 
+		begin
+			--if @RatedSecurityID = 39191
+			begin
+				select top 1 @Result = ec.Coupon*@Nominal/nullif(coalesce(ec.FaceValue, @Nominal), 0), @CouponFundID = coalesce(es.FundID, 39191)
+				from tExchangeSecurity es
+				 join tExchangeCoupon ec on ec.ExchangeSecurityID = es.ExchangeSecurityID
+				where es.SecurityID = @SecurityID
+					and es.RawDataProviderID in (11/*, 13, 14, 15, 16*/)
+					and ec.RateDate = @Date
+					and ec.Coupon > 0
+			end
+
+			if isnull(@Result, 0) = 0
+			begin
+				
+				select top 1 
+					@Result = case when r.TradeSystemID = 36 then @Nominal * cast(r.AccumulatedCouponIncome as float) / 100.0 else cast(r.AccumulatedCouponIncome as float) end,
+					@CouponFundID = case 
+											when r.TradeSystemID = 36
+											then r.QuotingSecurityID --@RatedSecurityID
+											else case 
+													 when r.QuotingSecurityID = 39149 -- Многовалютный учет
+													 then @RatedSecurityID
+													 else r.QuotingSecurityID
+													 end                           
+											end                           
+				from tRate r
+				where r.SecurityID = @SecurityID
+					and r.TradeSystemID  in (35, 36)
+					and r.AccumulatedCouponIncome > 0
+					and r.ActualizationDateTime = @Date
+				order by r.TradeSystemID desc
+			end
+		end
+		else
+		begin
+			select top 1 @Result = NKD, @CouponFundID = 39191 from tQUIK_Rate where DateCourse = @Date and SecurityID = @SecurityID
+		end
+		
+		if not (isnull(@Result, 0) > 0)
+		begin
+			select top 1
+				@Result = 
+					case 
+					when cp.CouponValue > 0 then 
+						case when s.CouponPeriod = 360 
+						then round(cast(cp.CouponValue as float)*(year(@Date)*360+month(@Date)*30+case when day(@Date) > 30 then 30 else day(@Date) end - (year(cp.DateStart)*360+month(cp.DateStart)*30+case when day(cp.DateStart) > 30 then 30 else day(cp.DateStart) end))/nullif(year(cp.DateEnd)*360+month(cp.DateEnd)*30+case when day(cp.DateEnd) > 30 then 30 else day(cp.DateEnd) end - (year(cp.DateStart)*360+month(cp.DateStart)*30+case when day(cp.DateStart) > 30 then 30 else day(cp.DateStart) end), 0), 5)
+						else round(cast(cp.CouponValue as float) * datediff(dy, cp.DateStart, @Date) / datediff(dy, cp.DateStart, cp.DateEnd), 2)
+						end
+					else @Nominal * cp.CouponPercent / 100 * datediff(dy, cp.DateStart, @Date) / nullif(@CouponYear, 0)
+					end,
+				@CouponFundID = @RatedSecurityID
+			from tCouponPeriod cp 
+			 join tSecurity s on s.SecurityID = @SecurityID
+			where cp.SecurityID = @SecurityID
+				and @Date between cp.DateStart and cp.DateEnd-1
+		end
+		if isnull(@Result, 0) > 0
+		begin
+			if @CouponFundID <> @FundID
+			begin
+				if @CouponFundID <> 39191
+					select top 1 @Course1 = r.CourseCurrent
+					from tRate r
+					where r.SecurityID = @CouponFundID
+						and r.TradeSystemID = 1
+						and r.QuotingSecurityID = 39191
+						and r.ActualizationDateTime < @Date+1
+						and r.CourseCurrent <> 0
+					order by r.ActualizationDateTime desc
+				else
+					set @Course1 = 1
+
+				if @FundID <> 39191
+					select top 1 @Course2 = r.CourseCurrent
+					from tRate r
+					where r.SecurityID = @FundID
+						and r.TradeSystemID = 1
+						and r.QuotingSecurityID = 39191
+						and r.ActualizationDateTime < @Date+1
+						and r.CourseCurrent <> 0
+					order by r.ActualizationDateTime desc
+				else
+					set @Course2 = 1
+				set @Result = @Result * @Course1 / nullif(@Course2, 0)
+			end
+		end
+	end	
+	return isnull(@Result, 0.0)
+end

@@ -1,0 +1,781 @@
+﻿@{
+  ViewBag.Title = "ЭДО";
+  Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section scripts {
+  <style type="text/css">
+    .icon-user-add
+    {
+      background-image: url(@Href("~/Content/images/user_add.png")) !important;
+    }
+    .icon-save
+    {
+      background-image: url(@Href("~/Content/images/save.gif")) !important;
+    }
+    .upload-icon
+    {
+      background-image: url(@Href("~/Content/images/image_add.png")) !important;
+    }
+    .icon-delete
+    {
+      background-image: url(@Href("~/Content/images/delete.png")) !important;
+    }
+    .icon-refresh
+    {
+      background-image: url(@Href("~/Scripts/ExtJS62/build/classic/theme-gray/resources/images/grid/refresh.gif")) !important;
+    }
+    td.wrap-text div {
+      white-space: normal;
+    }
+    .gray-row .x-grid-cell {
+      color: gray;
+  }
+    .search-item
+    {
+      font: normal 11px tahoma, arial, helvetica, sans-serif;
+      padding: 2px 5px 2px 5px;
+      /*border: 1px solid #fff;*/
+      border-bottom: 1px solid #eeeeee;
+      white-space: normal;
+      color: #555;
+    }
+    .search-item h3
+    {
+      display: block;
+      font: inherit;
+      font-weight: bold;
+      color: #222;
+    }
+  </style>
+  <link rel="stylesheet" type="text/css" href="~/Scripts/ExtJS62/build/classic/theme-gray/resources/theme-gray-all.css" />
+  <script type="text/javascript" src="~/Scripts/ExtJS62/ext-bootstrap.js"></script>
+  <script type="text/javascript" src="~/Scripts/ExtJS62/build/classic/locale/locale-ru.js"></script>
+  <script type="text/javascript" src="~/Scripts/ExtJS62/ux/Exporter.js"></script>
+  <script type="text/javascript">
+
+    @*Ext.Loader.setPath('Ext.ux', '@Href("~/Scripts/ExtJS41/ux")');
+    Ext.require([
+      'Ext.ux.grid.FiltersFeature'
+    ]);*@
+
+    Ext.apply(Ext.form.VTypes, {
+      daterange: function (val, field) {
+        var date = field.parseDate(val);
+        if (!date) {
+          return false;
+        }
+        if (field.startDateField) {
+          var start = field.ownerCt.getComponent(field.startDateField);
+          if (!start.maxValue || date.getTime() !== start.maxValue.getTime()) {
+            start.setMaxValue(date);
+            start.validate();
+          }
+        }
+        else if (field.endDateField) {
+          var end = field.ownerCt.getComponent(field.endDateField);
+          if (!end.minValue || date.getTime() !== end.minValue.getTime()) {
+            end.setMinValue(date);
+            end.validate();
+          }
+        }
+        /*
+        * Always return true since we're only using this vtype to set the
+        * min/max allowed values (these are tested for after the vtype test)
+        */
+        return true;
+      }
+    });
+
+    Ext.define('Edo', {
+      extend: 'Ext.data.Model',
+      pageSize: 500,
+      remoteSort: true,
+      autoSync: false,
+      autoLoad: false,
+      idProperty: 'ID',
+      fields: [
+        { name: 'ID', type: 'int' },
+        { name: 'Crypto', type: 'string' },
+        { name: 'DateCancel', type: 'date', dateFormat: 'c' },
+        { name: 'EDO', type: 'string' },
+        { name: 'Department', type: 'string' },
+        { name: 'FIO_owner', type: 'string' },
+        { name: 'FIO_resp', type: 'string' },
+        { name: 'IsCancel', type: 'bool' },
+        { name: 'Publisher', type: 'string' },
+        { name: 'Srok', type: 'date', dateFormat: 'c' },
+        { name: 'Storage', type: 'string' },
+        { name: 'EmailTo', type: 'string' },
+        { name: 'EmailToName', type: 'string', persist: false },
+        { name: 'FileName', type: 'string' }
+      ],
+      proxy: {
+        type: 'ajax',
+        api: {
+          read: '@Url.Action("getEdoList")',
+          create: '@Url.Action("addEdo")',
+          update: '@Url.Action("updEdo")',
+          destroy: '@Url.Action("delEdo")'
+        },
+        actionMethods: { read: 'POST' },
+        reader: {
+          type: 'json',
+          rootProperty: 'data',
+          totalProperty: 'totalCount'
+        },
+        writer: {
+          type: 'json',
+          rootProperty: 'data',
+          writeAllFields: true,
+          allowSingle: false,
+          encode: false
+        },
+        simpleSortMode: true
+      }
+    });
+
+    Ext.create('Ext.data.Store', {
+      storeId: 'storeEdo',
+      model: 'Edo'
+    });
+
+
+    Ext.define('EMail', {
+      extend: 'Ext.data.Model',
+      idProperty: 'id',
+      fields: ['id', 'name', 'email']
+    });
+
+    var storeEMail = Ext.create('Ext.data.Store', {
+      remoteSort: true,
+      model: 'EMail',
+      autoLoad: true,
+      proxy: {
+        actionMethods: { read: 'POST' },
+        type: 'ajax',
+        url: '@Url.Action("getEMailList")',
+        reader: {
+          type: 'json',
+          rootProperty: 'data'
+        },
+        simpleSortMode: true
+      }
+    });
+
+    Ext.define('EMailList', {
+      extend: 'Ext.data.Model',
+      idProperty: 'id',
+      fields: ['id', 'name', 'email', { name: 'ui', type: 'bool' }]
+    });
+
+    var storeEMailTo = Ext.create('Ext.data.Store', {
+      model: 'EMailList'
+    });
+
+    Ext.define('Edo.Win', {
+      extend: 'Ext.window.Window',
+      alias: 'widget.edowin',
+
+      initComponent: function () {
+        Ext.apply(this, {
+          width: 500,
+          closeAction: 'hide',
+          modal: true,
+          buttonAlign: 'center',
+          items: [{
+            xtype: 'form',
+            border: false,
+            fieldDefaults: {
+              labelAlign: 'top',
+              msgTarget: 'side',
+              labelWidth: 190
+            },
+            defaultType: 'textfield',
+            items: [{
+              xtype: 'tabpanel',
+              itemId: 'tp',
+              anchor: '100%',
+              border: false,
+              height: 500,
+              border: false,
+              items: [{
+                tag: 0,
+                title: 'Параметры',
+                bodyPadding: 10,
+                layout: 'anchor',
+                border: false,
+                defaultType: 'textfield',
+                layout: 'anchor',
+                defaults: { anchor: '100%' },
+                items: [{
+                  xtype: 'textfield',
+                  name: 'EDO',
+                  fieldLabel: 'ЭДО',
+                  allowBlank: false
+                }, {
+                  xtype: 'textfield',
+                  name: 'Crypto',
+                    fieldLabel: 'Крипто-провайдер',
+                    allowBlank: false
+                }, {
+                  xtype: 'textfield',
+                  name: 'Publisher',
+                    fieldLabel: 'Издатель',
+                    allowBlank: false
+                }, {
+                  xtype: 'textfield',
+                  name: 'FIO_owner',
+                  fieldLabel: 'ФИО владельца'
+                }, {
+                  xtype: 'fieldcontainer',
+                  layout: 'hbox',
+                  items: [{
+                    xtype: 'datefield',
+                    name: 'Srok',
+                    fieldLabel: 'Срок действия',
+                    width: 120,
+                    startDay: 1,
+                    allowBlank: true,
+                    format: 'd.m.Y'
+                  }]
+                }, {
+                  xtype: 'textfield',
+                  name: 'Department',
+                  fieldLabel: 'Департамент / Отдел'
+                }, {
+                  xtype: 'textfield',
+                  name: 'FIO_resp',
+                  fieldLabel: 'ФИО отв.лица'
+                }, {
+                  xtype: 'textfield',
+                  name: 'Storage',
+                  fieldLabel: 'Место хранения'
+                }, {
+                  xtype: 'fieldcontainer',
+                  layout: 'hbox',
+                  items: [{
+                    xtype: 'datefield',
+                    name: 'DateCancel',
+                    labelAlign: 'left',
+                    fieldLabel: 'Дата отзыва',
+                    width: 200,
+                    labelWidth: 75,
+                    startDay: 1,
+                    format: 'd.m.Y'
+                  }, {
+                    xtype: 'checkboxfield',
+                    name: 'IsCancel',
+                    fieldLabel: 'Сертификат аннулирован',
+                    labelAlign: 'right',
+                    labelWidth: 180,
+                    inputValue: '1',
+                    uncheckedValue: '0'
+                  }]
+                }, {
+                  itemId: 'EmailTo',
+                  name: 'EmailTo',
+                  xtype: 'hidden'
+                }]
+              }, {
+                tag: 1,
+                title: 'Адресаты',
+                layout: 'anchor',
+                defaults: { anchor: '100%' },
+                border: false,
+                flex: 1,
+                items: [{
+                  xtype: 'grid',
+                  border: false,
+                  itemId: 'gTo',
+                  anchor: '100% 100%',
+                  title: 'Кому',
+                  store: storeEMailTo,
+                  columns: [{
+                    xtype: 'checkcolumn',
+                    dataIndex: 'ui',
+                    width: 30
+                  }, {
+                    header: "Имя",
+                    dataIndex: 'name',
+                    width: 240
+                  }, {
+                    header: "EMail",
+                    dataIndex: 'email',
+                    flex: 1
+                  }]
+                }]
+              }]
+            }]
+          }],
+          buttons: [{
+            itemId: 'save',
+            text: 'Сохранить',
+            disabled: true,
+            scope: this,
+            handler: this.onSave
+          }, {
+            text: 'Отмена',
+            scope: this,
+            handler: this.onCancel
+          }]
+        });
+        this.callParent();
+      },
+
+      setActiveRecord: function (record) {
+        var me = this;
+        me.activeRecord = record;
+        if (record) {
+          me.down('#save').enable();
+          me.down('form').getForm().reset().loadRecord(record);
+        } else {
+          me.down('#save').disable();
+          me.down('form').getForm().reset();
+        }
+        var re = /\s*,\s*/
+        var to = (record.data.EmailTo == null ? '' : record.data.EmailTo).split(re);
+        storeEMailTo.removeAll();
+        storeEMail.each(function (r, i) {
+          storeEMailTo.add({ id: r.data.id, name: r.data.name, email: r.data.email, ui: Ext.Array.contains(to, r.data.email) });
+        });
+        me.down('#gTo').reconfigure(storeEMailTo);
+        me.down('tabpanel').setActiveTab(0);
+      },
+
+      onSave: function () {
+        var active = this.activeRecord, form = this.down('form').getForm();
+        if (!active) {
+          return;
+        }
+        var s = '', f = true;
+        storeEMailTo.each(function (r, i) {
+          if (r.data.ui) {
+            s += (!f ? ', ' : '') + r.data.email;
+            if (f) f = false;
+          }
+        });
+        this.down('#EmailTo').setValue(s);
+        if (form.isValid()) {
+          if (this.title == 'Добавить')
+            this.fireEvent('create', this, form.getValues(false, false, false, true));
+          else {
+            form.updateRecord(active);
+            this.fireEvent('update');
+          }
+          this.hide();
+        }
+      },
+
+      onCancel: function () {
+        this.hide();
+      }
+    });
+
+    Ext.define('File.Win', {
+      extend: 'Ext.window.Window',
+      alias: 'widget.filewin',
+      initComponent: function () {
+        Ext.apply(this, {
+          activeRecord: null,
+          fileurl: null,
+          width: 500,
+          closeAction: 'hide',
+          layout: 'fit',
+          modal: true,
+          autoHeight: true,
+          plain: true,
+          buttonAlign: 'center',
+          border: true,
+          items: [{
+            xtype: 'form',
+            bodyPadding: 10,
+            defaults: { anchor: '100%' },
+            defaultType: 'textfield',
+            layoutConfig: { labelSeparator: '' },
+            fieldDefaults: { labelWidth: 100, labelAlign: 'left' },
+            items: [{
+              itemId: 'FileName',
+              name: 'FileName',
+              fieldLabel: 'Файл',
+              readOnly: true
+            }, {
+              xtype: 'form',
+              padding: '0 0 15 0',
+              border: false,
+              waitMsgTarget: true,
+              defaults: { anchor: '100%' },
+              items: [{
+                xtype: 'filefield',
+                emptyText: 'Выбор файла',
+                name: 'fn',
+                fieldLabel: 'Загрузка',
+                buttonText: '',
+                buttonConfig: {
+                  iconCls: 'upload-icon'
+                }
+              }],
+              buttons: [{
+                text: 'Загрузить',
+                handler: function () {
+                  var form = this.up('form').getForm();
+                  if (form.isValid()) {
+                    form.submit({
+                      url: this.up('window').fileurl + '?id=' + this.up('window').activeRecord.get('ID'),
+                      waitMsg: 'Отправка файла...',
+                      waitMsgTarget: true,
+                      success: function (fp, o) {
+                        fp.owner.up('form').getForm().getFields().get(0).setValue(o.result.file);
+                        alert('Файл "' + o.result.file + '" загружен.');
+                      },
+                      failure: function (fp, o) {
+                        alert('Ошибка');
+                      }
+                    });
+                  }
+                }
+              }]
+            }],
+            listeners: {
+            }
+          }],
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'bottom',
+            ui: 'footer',
+            items: ['->', {
+              iconCls: 'icon-save',
+              itemId: 'save',
+              text: 'Сохранить',
+              disabled: true,
+              scope: this,
+              handler: this.onSave
+            }, {
+                text: 'Отмена',
+                scope: this,
+                handler: this.onCancel
+              }]
+          }]
+        });
+        this.callParent();
+      },
+
+      setActiveRecord: function (record) {
+        var me = this;
+        var form = me.down('form').getForm();
+        me.activeRecord = record;
+        if (record) {
+          this.down('#save').enable();
+          form.loadRecord(record);
+        } else {
+          me.down('#save').disable();
+          form.reset();
+        }
+      },
+
+      setFileName: function (name) {
+        var me = this;
+        me.down('form').getForm().getFields().get(0).name = name;
+      },
+
+      setUrl: function (_fileurl) {
+        var me = this
+        me.fileurl = _fileurl
+      },
+
+      onSave: function () {
+        var active = this.activeRecord, form = this.down('form').getForm();
+        if (!active) {
+          return;
+        }
+        if (form.isValid()) {
+          form.updateRecord(active);
+          this.fireEvent('update');
+          this.hide();
+        }
+      },
+
+      onCancel: function () {
+        this.hide();
+      }
+    });
+
+    Ext.define('Edo.Grid', {
+      extend: 'Ext.grid.Panel',
+      alias: 'widget.edogrid',
+      initComponent: function () {
+        Ext.apply(this, {
+          wini: null,
+          defaultType: 'textfield',
+          invalidateScrollerOnRefresh: false,
+          layoutConfig: { labelSeparator: '' },
+          viewConfig: {
+            preserveScrollOnRefresh: true,
+            enableTextSelection: true
+          },
+          columns: [{
+            header: 'ЭДО',
+            dataIndex: 'EDO',
+            width: 150,
+            tdCls: 'wrap-text'
+          }, {
+            header: 'Крипто-провайдер',
+            dataIndex: 'Crypto',
+            width: 150,
+            tdCls: 'wrap-text'
+          }, {
+            header: 'Издатель',
+            dataIndex: 'Publisher',
+            width: 150,
+            tdCls: 'wrap-text'
+          }, {
+            header: 'ФИО владельца',
+            dataIndex: 'FIO_owner',
+            width: 150,
+            tdCls: 'wrap-text'
+          }, {
+            header: 'Срок действия',
+            xtype: 'datecolumn',
+            format: 'd.m.Y',
+            dataIndex: 'Srok',
+            width: 88
+          }, {
+            header: 'Департамент / Отдел',
+            dataIndex: 'Department',
+            width: 150,
+            tdCls: 'wrap-text'
+          }, {
+            header: 'ФИО отв.лица',
+            dataIndex: 'FIO_resp',
+            width: 150,
+            tdCls: 'wrap-text'
+          }, {
+            header: 'Место хранения',
+            dataIndex: 'Storage',
+            width: 150,
+            tdCls: 'wrap-text'
+          }, {
+            header: 'Аннулирован',
+            dataIndex: 'IsCancel',
+            width: 50,
+            renderer: function (v) { return v ? 'Да' : 'Нет'; }
+          }, {
+            header: 'Дата отзыва',
+            xtype: 'datecolumn',
+            format: 'd.m.Y',
+            dataIndex: 'DateCancel',
+            width: 88
+          }, {
+            header: 'Адресаты',
+            dataIndex: 'EmailToName',
+            flex: 1,
+            tdCls: 'wrap-text'
+          }, {
+            header: 'Файл',
+            dataIndex: 'FileName',
+            renderer: function (v) {
+              return !v ? '' : Ext.String.format('<a href="@Url.Action("GetFileE")?data={1}" target="_blank">{0}</a>', v, encodeURIComponent(v));
+            },
+            width: 150,
+            isExport: false
+          }],
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'top',
+            items: [{
+              xtype: 'tbtext', text: ' Период: '
+            }, {
+              xtype: 'datefield',
+              itemId: 'd1',
+              allowBlank: false,
+              format: 'd.m.Y',
+              vtype: 'daterange',
+              endDateField: 'd2',
+              startDay: 1,
+              value: Ext.Date.add(Ext.Date.clearTime(new Date(), false), Ext.Date.DAY, -30),
+              width: 100
+            }, ' ', {
+              xtype: 'datefield',
+              itemId: 'd2',
+              format: 'd.m.Y',
+              vtype: 'daterange',
+              startDateField: 'd1',
+              startDay: 1,
+              //              value: Ext.Date.add(Ext.Date.clearTime(new Date(), false), Ext.Date.DAY, 365),
+              width: 100,
+              margin: '0 5 0 0'
+            }, {
+              iconCls: 'icon-refresh',
+              text: 'Обновить',
+              scope: this,
+              handler: this.onRefreshClick
+            }, {
+              iconCls: 'icon-user-add',
+              text: 'Добавить',
+              scope: this,
+              handler: this.onAddClick
+            }, {
+              text: 'Изменить',
+              disabled: true,
+              itemId: 'change',
+              scope: this,
+              handler: this.onChangeClick
+            }, {
+              iconCls: 'icon-delete',
+              text: 'Удалить',
+              disabled: true,
+              itemId: 'delete',
+              scope: this,
+              handler: this.onDeleteClick
+            }, {
+              text: 'Файл',
+              disabled: true,
+              itemId: 'file',
+              scope: this,
+              handler: this.onFileClick
+            }, {
+              text: 'Отправить',
+              itemId: 'sendEmail',
+              disabled: true,
+              scope: this,
+              handler: this.onSendEmailClick
+            }, {
+              xtype: 'exporterbutton',
+              text: 'Экспорт',
+              action: '@Url.Action("ExportExcel", "Home", new { area = "" })',
+              file: 'ЭДО.xml'
+            }]
+          }]
+        })
+        this.callParent();
+        this.getSelectionModel().on('selectionchange', this.onSelectChange, this);
+        this.on('itemdblclick', this.onRowDblClick, this);
+      },
+
+      onSendEmailClick: function () {
+        if (window.confirm('Отправить сообщение?')) {
+          Ext.Ajax.request({
+            url: '@Url.Action("edoEmail")',
+            timeout: 60000,
+            params: {
+              id: this.getView().getSelectionModel().getSelection()[0].data.ID
+            },
+            success: function (response) {
+              var text = response.responseText;
+              alert('Выполнено.');
+            },
+            failure: function (response) {
+              var text = response.responseText;
+              alert('Ошибка!');
+            }
+          });
+        }
+      },
+
+      onRefreshClick: function () {
+        var me = this;
+        me.store.proxy.extraParams = { d1: me.down('#d1').getValue(), d2: me.down('#d2').getValue() };
+        me.store.load();
+      },
+
+      onSelectChange: function (selModel, selections) {
+        this.down('#delete').setDisabled(selections.length === 0);
+        this.down('#change').setDisabled(selections.length === 0);
+        this.down('#file').setDisabled(selections.length === 0);
+        this.down('#sendEmail').setDisabled(selections.length === 0);
+      },
+
+      onCreateWin: function () {
+        this.wini = Ext.create('Edo.Win', {
+          scope: this,
+          listeners: {
+            scope: this,
+            create: function (form, data) {
+              this.store.insert(0, data);
+              this.store.sync();
+            },
+            update: function () {
+              this.store.sync();
+            }
+          }
+        });
+      },
+
+      onAddClick: function () {
+        var rec = Ext.create('Edo', {});
+        if (!this.wini) {
+          this.onCreateWin();
+        }
+        this.wini.setTitle('Добавить');
+        this.wini.setActiveRecord(rec);
+        this.wini.show(this);
+      },
+
+      onChangeClick: function () {
+        if (!this.wini) {
+          this.onCreateWin();
+        }
+        this.wini.setTitle('Изменить');
+        this.wini.setActiveRecord(this.getSelectionModel().getSelection()[0]);
+        this.wini.show(this);
+      },
+
+      onRowDblClick: function () {
+        this.onChangeClick();
+      },
+
+      onSync: function () {
+        this.store.sync();
+      },
+
+      onDeleteClick: function () {
+        var selection = this.getView().getSelectionModel().getSelection()[0];
+        if (selection) {
+          if (window.confirm('Удалить стр.?')) {
+            this.store.remove(selection);
+            this.onSync();
+          }
+        }
+      },
+
+      onFileClick: function () {
+        if (!this.winf) {
+          this.winf = Ext.create('File.Win', {
+            scope: this,
+            listeners: {
+              scope: this,
+              update: function () {
+                this.store.sync();
+              }
+            }
+          });
+        }
+        this.winf.setTitle('Привязать');
+        var rec = this.getSelectionModel().getSelection()[0];
+        this.winf.setUrl('@Url.Action("FileUploadE")');
+        this.winf.setFileName('FileName');
+        this.winf.setActiveRecord(rec);
+        this.winf.show(this);
+      }
+    });
+
+    Ext.onReady(function () {
+      Ext.tip.QuickTipManager.init();
+      Ext.create('Ext.Viewport', {
+        layout: 'border',
+        items: [{
+          region: 'north',
+          border: false,
+          contentEl: 'header'
+        }, {
+          region: 'center',
+          itemId: 'grid',
+          border: false,
+          xtype: 'edogrid',
+          store: 'storeEdo'
+        }]
+      });
+
+    });
+  </script>
+}

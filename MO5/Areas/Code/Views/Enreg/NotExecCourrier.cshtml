@@ -1,0 +1,55 @@
+﻿@model IEnumerable<MO5.Areas.Code.Models.NotExecEnreg>
+@{
+  Layout = null;
+}
+<style>
+  table {
+    border-collapse: collapse;
+    border: 1px solid gray;
+  }
+
+  td, span, th {
+    font-size: .8em;
+    font-family: "Segoe UI", Verdana, Helvetica, Sans-Serif;
+    text-align: left;
+  }
+
+  span {
+    font-style: italic;
+  }
+
+  th {
+    font-size: .7em;
+  }
+</style>
+<h3>Неисполненные поручения клиентов</h3>
+<table width='100%'>
+  <tr>
+    <th>Клиент</th>
+    <th>Договор</th>
+    <th>Номер</th>
+    <th>Дата получения</th>
+    <th>Тип документа</th>
+    <th>Дней на исполнение</th>
+    <th>Тип дней на исполнение</th>
+    <th>Дата исполнения(план)</th>
+    <th>Оригинал</th>
+    <th>Комментарий</th>
+  </tr>
+  @{foreach (var qq in Model)
+    {
+      <tr>
+        <td>@qq.finName</td>
+        <td>@qq.trName</td>
+        <td>@qq.Numero</td>
+        <td>@(qq.RecuDate.HasValue ? qq.RecuDate.Value.ToString("dd.MM.yy") : "")</td>
+        <td>@qq.DocType</td>
+        <td>@qq.DaysDog</td>
+        <td>@qq.DayDogType</td>
+        <td>@(qq.DogDateEnd.HasValue ? qq.DogDateEnd.Value.ToString("dd.MM.yy") : "")</td>
+        <td>@(qq.Original == true ? "Да" : "Нет")</td>
+        <td>@qq.Remarque</td>
+      </tr>
+    }
+  }
+</table>

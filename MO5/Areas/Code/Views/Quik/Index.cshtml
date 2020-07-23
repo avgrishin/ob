@@ -1,0 +1,2395 @@
+﻿
+@{
+  ViewBag.Title = "Quik";
+  Layout = "~/Views/Shared/_Layout.cshtml";
+}
+@section scripts {
+  <style type="text/css">
+    .icon-user-add
+    {
+      background-image: url(@Href("~/Content/images/user_add.png")) !important;
+    }
+    .icon-save
+    {
+      background-image: url(@Href("~/Content/images/save.gif")) !important;
+    }
+    .upload-icon
+    {
+      background-image: url(@Href("~/Content/images/image_add.png")) !important;
+    }
+    .icon-delete
+    {
+      background-image: url(@Href("~/Content/images/delete.png")) !important;
+    }
+    .icon-refresh
+    {
+      background-image: url(@Href("~/Scripts/ExtJS62/build/classic/theme-gray/resources/images/grid/refresh.gif")) !important;
+    }
+    .search-item
+    {
+      /*padding: 5px 0px 5px 0px;*/
+      border-bottom: 1px solid #f0f0f0;
+      white-space: normal;
+      color: #222;
+    }
+
+      .search-item span {
+        /*padding-top: 2px;
+        padding-bottom: 2px;*/
+        display: block;
+        font: inherit;
+        /*font-weight: bold;*/
+        color: #444;
+      }
+      .disp  {
+background-image:none;
+      }
+  </style>
+  <link rel="stylesheet" type="text/css" href="~/Scripts/ExtJS62/build/classic/theme-gray/resources/theme-gray-all.css" />
+  <script type="text/javascript" src="~/Scripts/ExtJS62/ext-bootstrap.js"></script>
+  <script type="text/javascript" src="~/Scripts/ExtJS62/build/classic/locale/locale-ru.js"></script>
+  <script type="text/javascript" src="~/Scripts/ExtJS62/ux/Exporter.js"></script>
+  <script type="text/javascript">
+
+    Ext.apply(Ext.form.VTypes, {
+      daterange: function (val, field) {
+        var date = field.parseDate(val);
+        if (!date) {
+          return false;
+        }
+        if (field.startDateField) {
+          var start = field.ownerCt.getComponent(field.startDateField);
+          if (!start.maxValue || date.getTime() !== start.maxValue.getTime()) {
+            start.setMaxValue(date);
+            start.validate();
+          }
+        }
+        else if (field.endDateField) {
+          var end = field.ownerCt.getComponent(field.endDateField);
+          if (!end.minValue || date.getTime() !== end.minValue.getTime()) {
+            end.setMinValue(date);
+            end.validate();
+          }
+        }
+        /*
+        * Always return true since we're only using this vtype to set the
+        * min/max allowed values (these are tested for after the vtype test)
+        */
+        return true;
+      }
+    });
+
+    Ext.define('QuikDeal', {
+      extend: 'Ext.data.Model',
+      pageSize: 500,
+      remoteSort: true,
+      autoSync: false,
+      autoLoad: false,
+      idProperty: 'ID',
+      fields: [
+        { name: 'Brief', type: 'string' },
+        { name: 'ClassCode', type: 'string' },
+        { name: 'ClientAccount', type: 'string' },
+        { name: 'ClientCode', type: 'string' },
+        { name: 'CreateDate', type: 'date', dateFormat: 'c' },
+        { name: 'Comment', type: 'string' },
+        { name: 'DateDeal', type: 'date', dateFormat: 'c' },
+        { name: 'DealPrice', type: 'number', allowNull: true },
+        { name: 'Direction', type: 'int', allowNull: true, allowBlank: false },
+        { name: 'Dir', calculate: function (data) { return data.Direction === 0 ? 'B' : 'S'; } },
+        { name: 'ID', type: 'int' },
+        { name: 'ISIN', type: 'string' },
+        { name: 'Lot', type: 'int', allowNull: true },
+        { name: 'Name', type: 'string' },
+        { name: 'Num', type: 'number', allowNull: true },
+        { name: 'OrderNum', type: 'int' },
+        { name: 'Path', type: 'string' },
+        { name: 'QuikID', type: 'int', allowNull: true },
+        { name: 'QuikName', type: 'string', persist: false },
+        { name: 'RegNumber', type: 'string' },
+        { name: 'ReplayCode', type: 'int' },
+        { name: 'SecurityID', type: 'int', allowNull: true, allowBlank: true },
+        { name: 'StatusID', type: 'int' },
+        { name: 'Status', type: 'string', persist: false },
+        { name: 'Trans_ID', type: 'int', allowNull: true, allowBlank: false },
+        { name: 'TreatyID', type: 'int', allowNull: true, allowBlank: false },
+        { name: 'Type', type: 'boolean', defaultValue: false },
+        { name: 'TypeStr', calculate: function (data) { return data.Type ? 'R' : 'L'; } },
+        { name: 'TypeO', type: 'int', allowNull: true, allowBlank: false },
+        { name: 'TypeOName', type: 'string', persist: false },
+        { name: 'UserID', type: 'int', allowNull: true },
+        { name: 'UserName', type: 'string', persist: false },
+        { name: 'Form', type: 'int' }
+      ]
+    });
+
+    Ext.create('Ext.data.Store', {
+      storeId: 'storeqd',
+      model: 'QuikDeal',
+      proxy: {
+        type: 'ajax',
+        api: {
+          read: '@Url.Action("getQuikDealList")',
+          create: '@Url.Action("addQuikDeal")',
+          update: '@Url.Action("updQuikDeal")',
+          destroy: '@Url.Action("delQuikDeal")'
+        },
+        actionMethods: { read: 'POST' },
+        reader: {
+          type: 'json',
+          rootProperty: 'data',
+          totalProperty: 'totalCount'
+        },
+        writer: {
+          type: 'json',
+          rootProperty: 'data',
+          writeAllFields: true,
+          allowSingle: false,
+          encode: false
+        },
+        simpleSortMode: true
+      },
+      groupField: 'CreateDate'
+    });
+
+    Ext.create('Ext.data.Store', {
+      storeId: 'storeqdt',
+      model: 'QuikDeal',
+      proxy: {
+        type: 'ajax',
+        api: {
+          read: '@Url.Action("getQuikDealCrDt")',
+          create: '@Url.Action("addQuikDeal")',
+          update: '@Url.Action("updQuikDeal")',
+          destroy: '@Url.Action("delQuikDeal")'
+        },
+        actionMethods: { read: 'POST' },
+        reader: {
+          type: 'json',
+          rootProperty: 'data',
+          totalProperty: 'totalCount'
+        },
+        writer: {
+          type: 'json',
+          rootProperty: 'data',
+          writeAllFields: true,
+          allowSingle: false,
+          encode: false
+        },
+        simpleSortMode: true
+      }
+    });
+
+    Ext.define('QuikUser', {
+      extend: 'Ext.data.Model',
+      autoLoad: true,
+      idProperty: 'ID',
+      fields: [
+        { name: 'ID', type: 'int' },
+        { name: 'Name', type: 'string' },
+        { name: 'ExternalID', type: 'int' },
+        { name: 'Path', type: 'string' }
+      ],
+      proxy: {
+        type: 'ajax',
+        api: {
+          read: '@Url.Action("getQuikUserList")',
+          update: '@Url.Action("updQuikUserDeal")'
+        },
+        actionMethods: { read: 'POST' },
+        reader: {
+          type: 'json',
+          rootProperty: 'data',
+          totalProperty: 'totalCount'
+        },
+        writer: {
+          type: 'json',
+          rootProperty: 'data',
+          writeAllFields: true,
+          allowSingle: false,
+          encode: false
+        },
+        simpleSortMode: true
+      }
+    });
+
+    var qustore = Ext.create('Ext.data.Store', {
+      storeId: 'storequ',
+      autoLoad: true,
+      model: 'QuikUser'
+    });
+
+    Ext.define('QuikDealModel', {
+      extend: 'Ext.data.Model',
+      idProperty: 'ID',
+      fields: [
+        { name: 'ID', type: 'int' },
+        { name: 'Name', type: 'string' }
+      ]
+    });
+
+    Ext.create('Ext.data.Store', {
+      storeId: 'storeqt',
+      autoLoad: true,
+      model: 'QuikDealModel',
+      proxy: {
+        type: 'ajax',
+        url: '@Url.Action("getQuikDealTypeList")',
+        actionMethods: { read: 'POST' },
+        reader: {
+          type: 'json',
+          rootProperty: 'data'
+        },
+        simpleSortMode: true
+      }
+    });
+
+    Ext.define('QuikRate', {
+      extend: 'Ext.data.Model',
+      idProperty: 'ID',
+      fields: [
+        { name: 'ID', type: 'int' },
+        { name: 'Instrument', type: 'string' },
+        { name: 'Brief', type: 'string' },
+        { name: 'Name', type: 'string' },
+        { name: 'ISIN', type: 'string' },
+        { name: 'RegNumber', type: 'string' },
+        { name: 'ClassCode', type: 'string' },
+        { name: 'Lot', type: 'int' }
+      ]
+    });
+
+    Ext.create('Ext.data.Store', {
+      storeId: 'storeqr',
+      autoLoad: false,
+      model: 'QuikRate',
+      proxy: {
+        type: 'ajax',
+        url: '@Url.Action("getQuikSec")',
+        actionMethods: { read: 'GET' },
+        reader: {
+          type: 'json',
+          rootProperty: 'data'
+        },
+        simpleSortMode: true
+      }
+    });
+
+    Ext.define('QuikCln', {
+      extend: 'Ext.data.Model',
+      idProperty: 'ID',
+      fields: [
+        { name: 'ID', type: 'int' },
+        { name: 'ClientCode', type: 'string' },
+        { name: 'ClientAccount', type: 'string' },
+        { name: 'TreatyID', type: 'int' }
+      ],
+      proxy: {
+        type: 'ajax',
+        url: '@Url.Action("getQuikCln")',
+        actionMethods: { read: 'POST' },
+        reader: {
+          type: 'json',
+          rootProperty: 'data'
+        },
+        simpleSortMode: true
+      }
+    });
+
+    Ext.create('Ext.data.Store', {
+      storeId: 'storeqc',
+      autoLoad: false,
+      model: 'QuikCln'
+    });
+
+    Ext.define('MyTreatyCln', {
+      extend: 'Ext.data.Model',
+      idProperty: 'ID',
+      fields: [
+        { name: 'ID', type: 'int' },
+        { name: 'ClientCode', type: 'string', persist: false },
+        { name: 'ClientAccount', type: 'string', persist: false },
+        { name: 'TreatyCodeID', type: 'int' }
+      ]
+    });
+
+    Ext.create('Ext.data.Store', {
+      storeId: 'storemtc',
+      autoLoad: false,
+      model: 'MyTreatyCln',
+      proxy: {
+        type: 'ajax',
+        api: {
+          read: '@Url.Action("getMyTreatyCode")',
+          create: '@Url.Action("addMyTreatyCode")',
+          destroy: '@Url.Action("delMyTreatyCode")'
+        },
+        actionMethods: { read: 'POST' },
+        reader: {
+          type: 'json',
+          rootProperty: 'data',
+          totalProperty: 'totalCount'
+        },
+        writer: {
+          type: 'json',
+          rootProperty: 'data',
+          writeAllFields: true,
+          allowSingle: false,
+          encode: false
+        },
+        simpleSortMode: true
+      }
+    });
+
+    Ext.create('Ext.data.Store', {
+      storeId: 'storeqcf',
+      autoLoad: false,
+      model: 'QuikCln',
+      proxy: {
+        type: 'ajax',
+        url: '@Url.Action("getQuikClnF")',
+        actionMethods: { read: 'POST' },
+        reader: {
+          type: 'json',
+          rootProperty: 'data'
+        },
+        simpleSortMode: true
+      }
+    });
+
+    Ext.define('CheckDeclModDeal', {
+      extend: 'Ext.data.Model',
+      fields: [
+        { name: 'TreatyName', type: 'string' },
+        { name: 'FinInstName', type: 'string' },
+        { name: 'IDName', type: 'string' },
+        { name: 'NameWhere', type: 'string' },
+        { name: 'StartValue', type: 'number' },
+        { name: 'StopValue', type: 'number' },
+        { name: 'coef', type: 'number' },
+        { name: 'numerator', type: 'number' },
+        { name: 'denominator', type: 'number' },
+        { name: 'Num', type: 'number' },
+        { name: 'Course', type: 'number' },
+        { name: 'Qty', type: 'number' },
+        { name: 'coefS', type: 'number' }
+      ],
+      autoLoad: false,
+      proxy: {
+        type: 'ajax',
+        actionMethods: { read: 'POST' },
+        url: '@Url.Action("CheckDeclModDeal", "InvestDecl", new { area = "code" })',
+        reader: {
+          type: 'json',
+          rootProperty: 'data'
+        }
+      }
+    });
+
+    Ext.create('Ext.data.Store', {
+      storeId: 'storeCheckDeclModDeal',
+      model: 'CheckDeclModDeal'
+    });
+
+    Ext.define('QuikDealCln.Win', {
+      extend: 'Ext.window.Window',
+      alias: 'widget.quikdcwin',
+
+      initComponent: function () {
+        Ext.apply(this, {
+          width: 600,
+          closeAction: 'hide',
+          modal: true,
+          buttonAlign: 'center',
+          items: [{
+            xtype: 'form',
+            //border: true,
+            activeRecord: null,
+            layout: 'anchor',
+            bodyPadding: 10,
+            fieldDefaults: {
+              labelAlign: 'right',
+              labelWidth: 110,
+              msgTarget: 'side',
+              anchor: '100%'
+            },
+            defaultType: 'textfield',
+            items: [{
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              items: [{
+                name: 'QuikID',
+                fieldLabel: 'QUIK',
+                xtype: 'combo',
+                store: qustore, //'storequ',
+                displayField: 'Name',
+                valueField: 'ID',
+                typeAhead: true,
+                queryMode: 'local',
+                allowBlank: false,
+                selectOnFocus: true,
+                listeners: {
+                  select: this.onSelectQuik
+                }
+              }]
+            }, {
+              name: 'Path',
+              fieldLabel: 'Путь к QUIK',
+              allowBlank: false,
+            }, {
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              items: [{
+                name: 'TypeO',
+                fieldLabel: 'Тип заявки',
+                xtype: 'combo',
+                store: 'storeqt',
+                displayField: 'Name',
+                valueField: 'ID',
+                typeAhead: true,
+                queryMode: 'local',
+                allowBlank: false,
+                selectOnFocus: true
+              }]
+            }, {
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              items: [{
+                xtype: 'radiogroup',
+                fieldLabel: 'Направление',
+                width: 300,
+                allowBlank: false,
+                items: [{
+                  boxLabel: 'Покупка',
+                  name: 'Direction',
+                  inputValue: '0'
+                }, {
+                  boxLabel: 'Продажа',
+                  name: 'Direction',
+                  inputValue: '1'
+                }]
+              }]
+            }, {
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              items: [{
+                xtype: 'numberfield',
+                minValue: 1,
+                name: 'Trans_ID',
+                fieldLabel: '№ транзакции',
+                allowBlank: false,
+                hideTrigger: true,
+                keyNavEnabled: false,
+                mouseWheelEnabled: false,
+                decimalPrecision: 0
+              }]
+            }, {
+              name: 'Type',
+              boxLabel: 'Рыночная',
+              xtype: 'checkbox',
+              margin: '0 0 0 115',
+              inputValue: '1',
+              uncheckedValue: '0',
+              listeners: {
+                change: this.onTypeChange
+              }
+            }, {
+              xtype: 'combo',
+              name: 'Brief',
+              store: 'storeqr',
+              queryParam: 'q',
+              queryMode: 'remote',
+              displayField: 'Brief',
+              typeAhead: false,
+              queryDelay: 1000,
+              width: 570,
+              hideTrigger: true,
+              forceSelection: false,
+              fieldLabel: 'ЦБ',
+              minChars: 2,
+              listConfig: {
+                getInnerTpl: function () {
+                  return '<div class="search-item"><div>{Brief}</div><span>{Name} {ClassCode} {ISIN}</span></div>';
+                  //return '{[values.name.replace(this.field.getRawValue(), "<b>" + this.field.getRawValue() + "</b>")]}';
+                  //return '{[this.field.getRawValue()]}'
+                }
+              },
+              itemSelector: 'div.search-item',
+              allowBlank: true,
+              listeners: {
+                select: this.onSelectQuikSec
+              }
+            }, {
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              defaultType: 'displayfield',
+              padding: '0 0 0 110',
+              fieldDefaults: {
+                labelAlign: 'top'
+              },
+              items: [{
+                name: 'Name',
+                fieldLabel: 'Код',
+                editable: false,
+                flex: 1
+              }, {
+                name: 'ISIN',
+                fieldLabel: 'ISIN',
+                readOnly: true,
+                flex: 1
+              }, {
+                name: 'ClassCode',
+                fieldLabel: 'Код класса',
+                //xtype: 'displayfield',
+                readOnly: true,
+                flex: 1
+                //inputWrapCls: ''
+              }, {
+                name: 'Lot',
+                fieldLabel: 'Лот',
+                readOnly: true,
+                flex: 1
+                }, {
+                  name: 'RegNumber',
+                  xtype: 'hidden'
+                }]
+            }, {
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              items: [{
+                xtype: 'numberfield',
+                minValue: 0,
+                name: 'DealPrice',
+                fieldLabel: 'Цена',
+                allowBlank: false,
+                hideTrigger: true,
+                keyNavEnabled: false,
+                mouseWheelEnabled: false,
+                decimalPrecision: 6,
+                decimalSeparator: '.'
+              }]
+            }]
+          }, {
+            xtype: 'qclngrid',
+            //border: false,
+            height: 300,
+            itemId: 'gCln',
+            store: 'storeqdt'
+          }],
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'bottom',
+            ui: 'footer',
+            items: ['->', {
+              iconCls: 'icon-save',
+              itemId: 'save',
+              text: 'Сохранить',
+              disabled: true,
+              scope: this,
+              handler: this.onSave
+            }, {
+                text: 'Отмена',
+                scope: this,
+                handler: this.onCancel
+              }]
+          }]
+        });
+        this.callParent();
+      },
+
+      onTypeChange: function (me, newValue) {
+        me.up('form').getForm().findField('DealPrice').setVisible(!newValue);
+      },
+
+      onSelectQuik: function (combo, record) {
+        combo.up('form').getForm().findField('Path').setValue(record.get('Path'));
+        combo.up('window').down('qclngrid').QuikID = combo.getValue();
+      },
+
+      onSelectQuikSec: function (combo, record) {
+        var f = combo.up('form').getForm();
+        f.findField('Name').setValue(record.get('Name'));
+        f.findField('ISIN').setValue(record.get('ISIN'));
+        f.findField('ClassCode').setValue(record.get('ClassCode'));
+        f.findField('Lot').setValue(record.get('Lot'));
+        f.findField('RegNumber').setValue(record.get('RegNumber'));
+      },
+
+      setCreateDate: function (cd) {
+        var me = this;
+        var grid = me.down('qclngrid');
+        grid.CreateDate = cd;
+        grid.store.proxy.extraParams = { cd: cd };
+        grid.store.load();
+      },
+
+      setActiveRecord: function (record) {
+        var me = this;
+        me.activeRecord = record;
+        if (record) {
+          var form = me.down('form').getForm();
+          me.down('#save').enable();
+          form.reset();
+          form.loadRecord(record);
+          me.down('qclngrid').QuikID = record.get('QuikID');
+          form.findField('DealPrice').setVisible(!record.get('Type'));
+        } else {
+          me.down('#save').disable();
+          me.down('form').getForm().reset();
+        }
+      },
+
+      onSave: function () {
+        var me = this;
+        var active = me.activeRecord, form = me.down('form').getForm(), grid = me.down('qclngrid');
+        if (!active) {
+          return;
+        }
+        if (form.isValid()) {
+          var vals = form.getFieldValues();
+          Ext.Ajax.request({
+            url: '@Url.Action("setQuikUserPath")',
+            params: { QuikID: vals.QuikID, Path: vals.Path },
+            success: function (response) {
+              var jr = Ext.decode(response.responseText);
+              if (jr.success === true) {
+                for (var i = 0; i < grid.store.data.getCount(); i++) {
+                  grid.store.getAt(i).set({
+                    Brief: vals.Brief,
+                    ClassCode: vals.ClassCode,
+                    DealPrice: vals.DealPrice,
+                    Direction: vals.Direction,
+                    ISIN: vals.ISIN,
+                    Lot: vals.Lot,
+                    Name: vals.Name,
+                    RegNumber: vals.RegNumber,
+                    QuikID: vals.QuikID,
+                    Path: vals.Path,
+                    Type: vals.Type,
+                    TypeO: vals.TypeO,
+                    Trans_ID: vals.Trans_ID
+                  });
+                }
+                grid.store.sync();
+                this.hide();
+              }
+            },
+            scope: this,
+            failure: function (response) {
+              alert('Ошибка!');
+            }
+          });
+        }
+      },
+
+      onCancel: function () {
+        this.hide();
+      }
+    });
+
+    Ext.define('QuikDealSec.Win', {
+      extend: 'Ext.window.Window',
+      alias: 'widget.quikdswin',
+
+      initComponent: function () {
+        Ext.apply(this, {
+          width: 600,
+          closeAction: 'hide',
+          modal: true,
+          buttonAlign: 'center',
+          items: [{
+            xtype: 'form',
+            activeRecord: null,
+            bodyPadding: 10,
+            fieldDefaults: {
+              labelAlign: 'right',
+              labelWidth: 110,
+              msgTarget: 'side',
+              anchor: '100%'
+            },
+            defaultType: 'textfield',
+            items: [{
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              items: [{
+                name: 'QuikID',
+                fieldLabel: 'QUIK',
+                xtype: 'combo',
+                store: qustore, //'storequ',
+                displayField: 'Name',
+                valueField: 'ID',
+                typeAhead: true,
+                queryMode: 'local',
+                allowBlank: false,
+                selectOnFocus: true,
+                listeners: {
+                  scope: this,
+                  select: this.onSelectQuik
+                }
+              }]
+            }, {
+              name: 'Path',
+              fieldLabel: 'Путь к QUIK',
+              allowBlank: false,
+            }, {
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              items: [{
+                name: 'TypeO',
+                fieldLabel: 'Тип заявки',
+                xtype: 'combo',
+                store: 'storeqt',
+                displayField: 'Name',
+                valueField: 'ID',
+                typeAhead: true,
+                queryMode: 'local',
+                allowBlank: false,
+                selectOnFocus: true
+              }]
+            }, {
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              items: [{
+                xtype: 'radiogroup',
+                fieldLabel: 'Направление',
+                width: 300,
+                allowBlank: false,
+                items: [{
+                  boxLabel: 'Покупка',
+                  name: 'Direction',
+                  inputValue: '0'
+                }, {
+                  boxLabel: 'Продажа',
+                  name: 'Direction',
+                  inputValue: '1'
+                }]
+              }]
+            }, {
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              items: [{
+                xtype: 'numberfield',
+                minValue: 1,
+                name: 'Trans_ID',
+                fieldLabel: '№ транзакции',
+                allowBlank: false,
+                hideTrigger: true,
+                keyNavEnabled: false,
+                mouseWheelEnabled: false,
+                decimalPrecision: 0,
+                listeners: {
+                  //blur: this.onCalcQty
+                }
+              }]
+            }, {
+              name: 'Type',
+              boxLabel: 'Рыночная',
+              xtype: 'checkbox',
+              margin: '0 0 0 115',
+              inputValue: '1',
+              uncheckedValue: '0'
+            }, {
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              items: [{
+                xtype: 'combo',
+                name: 'ClientCode',
+                store: 'storeqcf',
+                queryParam: 'q',
+                queryMode: 'remote',
+                displayField: 'ClientCode',
+                typeAhead: false,
+                queryDelay: 1000,
+                flex: 1,
+                hideTrigger: true,
+                forceSelection: false,
+                fieldLabel: 'Код Клиента',
+                minChars: 3,
+                listConfig: {
+                },
+                allowBlank: true,
+                listeners: {
+                  scope: this,
+                  select: this.onSelectClientCode,
+                  beforequery: this.onBeforeQuery
+                }
+              }, {
+                xtype: 'button',
+                tooltip: 'Мои Клиенты',
+                text: '...',
+                scope: this,
+                handler: this.onShowMyTreatyCode
+              }, {
+                xtype: 'button',
+                text: '>',
+                scope: this,
+                handler: this.onShowClientCode
+              }, {
+                xtype: 'button',
+                text: 'X',
+                scope: this,
+                handler: this.onClearClientCode
+              }, {
+                flex: 1,
+                name: 'ClientAccount',
+                xtype: 'textfield',
+                fieldLabel: 'Торговый Счет',
+              }, {
+                xtype: 'hidden',
+                name: 'TreatyID'
+              }]
+            }]
+          }, {
+            xtype: 'qsecgrid',
+            //border: false,
+            height: 300,
+            store: 'storeqdt'
+          }],
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'bottom',
+            ui: 'footer',
+            items: ['->', {
+              iconCls: 'icon-save',
+              itemId: 'save',
+              text: 'Сохранить',
+              disabled: true,
+              scope: this,
+              handler: this.onSave
+            }, {
+                text: 'Отмена',
+                scope: this,
+                handler: this.onCancel
+              }]
+          }]
+        });
+        this.callParent();
+      },
+
+      onBeforeQuery: function (queryPlan) {
+        var f = combo.up('form').getForm();
+        queryPlan.combo.getStore().proxy.extraParams = {
+          QuikID: f.findField('Name').getValue()
+        }
+      },
+
+      onSelectQuik: function (combo, record) {
+        combo.up('form').getForm().findField('Path').setValue(record.get('Path'));
+        combo.up('window').down('qsecgrid').QuikID = combo.getValue();
+        this.QuikID = combo.getValue();
+      },
+
+      onSelectQuikSec: function (combo, record) {
+        var f = combo.up('form').getForm();
+        f.findField('Name').setValue(record.get('Name'));
+        f.findField('ISIN').setValue(record.get('ISIN'));
+        f.findField('ClassCode').setValue(record.get('ClassCode'));
+        f.findField('Lot').setValue(record.get('Lot'));
+        f.findField('RegNumber').setValue(record.get('RegNumber'));
+      },
+
+      onShowClientCode: function () {
+        var w = Ext.create('Ext.window.Window', {
+          scope: this,
+          title: 'Клиенты',
+          modal: true,
+          width: 500,
+          height: window.innerHeight - 20,
+          layout: 'fit',
+          items: [{
+            xtype: 'clientgrid',
+            QuikID: this.QuikID
+          }],
+          listeners: {
+            scope: this,
+            sel: function (code, acc, tid) {
+              var f = this.down('form').getForm();
+              f.findField('ClientCode').setValue(code);
+              f.findField('ClientAccount').setValue(acc);
+              f.findField('TreatyID').setValue(tid);
+              w.close();
+            }
+          }
+        }).show(this);
+      },
+
+      onShowMyTreatyCode: function () {
+        var w = Ext.create('Ext.window.Window', {
+          scope: this,
+          title: 'Мои Клиенты',
+          modal: true,
+          width: 500,
+          height: window.innerHeight - 20,
+          layout: 'fit',
+          items: [{
+            xtype: 'mtcgrid',
+            QuikID: this.QuikID
+          }],
+          listeners: {
+            scope: this,
+            sel: function (code, acc, tid) {
+              var f = this.down('form').getForm();
+              f.findField('ClientCode').setValue(code);
+              f.findField('ClientAccount').setValue(acc);
+              f.findField('TreatyID').setValue(tid);
+              w.close();
+            }
+          }
+        }).show(this);
+      },
+
+      onSelectClientCode: function (combo, record) {
+        var f = this.down('form').getForm();
+        f.findField('ClientAccount').setValue(record.get('ClientAccount'));
+        f.findField('TreatyID').setValue(record.get('TreatyID'));
+      },
+
+      onClearClientCode: function () {
+        var f = this.down('form').getForm();
+        f.findField('ClientCode').setValue('');
+        f.findField('ClientAccount').setValue('');
+        f.findField('TreatyID').setValue('');
+      },
+
+      setActiveRecord: function (record) {
+        this.activeRecord = record;
+        if (record) {
+          this.down('#save').enable();
+          this.down('form').getForm().reset();
+          this.down('form').getForm().loadRecord(record);
+          this.down('qsecgrid').QuikID = record.get('QuikID');
+        } else {
+          this.down('#save').disable();
+          this.down('form').getForm().reset();
+        }
+      },
+
+      setCreateDate: function (cd) {
+        var me = this;
+        var grid = me.down('qsecgrid');
+        grid.CreateDate = cd;
+        grid.store.proxy.extraParams = { cd: cd };
+        grid.store.load();
+      },
+
+      onSave: function () {
+        var me = this;
+        var active = me.activeRecord, form = me.down('form').getForm(), grid = me.down('qclngrid');
+        if (!active) {
+          return;
+        }
+        if (form.isValid()) {
+          var vals = form.getFieldValues();
+          Ext.Ajax.request({
+            url: '@Url.Action("setQuikUserPath")',
+            params: { QuikID: vals.QuikID, Path: vals.Path },
+            success: function (response) {
+              var jr = Ext.decode(response.responseText);
+              if (jr.success === true) {
+                for (var i = 0; i < grid.store.data.getCount(); i++) {
+                  grid.store.getAt(i).set({
+                    Brief: vals.Brief,
+                    ClassCode: vals.ClassCode,
+                    DealPrice: vals.DealPrice,
+                    Direction: vals.Direction,
+                    ISIN: vals.ISIN,
+                    Lot: vals.Lot,
+                    Name: vals.Name,
+                    RegNumber: vals.RegNumber,
+                    //CreateDate: grid.CreateDate,
+                    QuikID: vals.QuikID,
+                    Path: vals.Path,
+                    Type: vals.Type,
+                    TypeO: vals.TypeO,
+                    Trans_ID: vals.Trans_ID,
+                    TreatyID: vals.TreatyID
+                  });
+                }
+                grid.store.sync();
+                this.hide();
+              }
+            },
+            scope: this,
+            failure: function (response) {
+              alert('Ошибка!');
+            }
+          });
+        }
+      },
+
+      onCancel: function () {
+        this.hide();
+      }
+    });
+
+    Ext.define('QuikCln.Win', {
+      extend: 'Ext.window.Window',
+      alias: 'widget.quikclnwin',
+
+      initComponent: function () {
+        Ext.apply(this, {
+          width: 400,
+          closeAction: 'hide',
+          modal: true,
+          buttonAlign: 'center',
+          items: [{
+            xtype: 'form',
+            activeRecord: null,
+            bodyPadding: 10,
+            fieldDefaults: {
+              labelAlign: 'right',
+              labelWidth: 110,
+              msgTarget: 'side',
+              anchor: '100%'
+            },
+            defaultType: 'textfield',
+            items: [{
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              items: [{
+                xtype: 'combo',
+                name: 'ClientCode',
+                store: 'storeqcf',
+                queryParam: 'q',
+                queryMode: 'remote',
+                displayField: 'ClientCode',
+                typeAhead: false,
+                queryDelay: 1000,
+                flex: 1,
+                hideTrigger: true,
+                forceSelection: false,
+                fieldLabel: 'Код Клиента',
+                minChars: 3,
+                listConfig: {
+                },
+                allowBlank: true,
+                listeners: {
+                  scope: this,
+                  select: this.onSelectClientCode,
+                  beforequery: this.onBeforeQuery
+                }
+              }, {
+                xtype: 'button',
+                tooltip: 'Мои Клиенты',
+                text: '...',
+                scope: this,
+                handler: this.onShowMyTreatyCode
+              }, {
+                xtype: 'button',
+                text: '>',
+                scope: this,
+                handler: this.onShowClientCode
+              }, {
+                xtype: 'button',
+                text: 'X',
+                scope: this,
+                handler: this.onClearClientCode
+              }]
+            }, {
+              name: 'ClientAccount',
+              fieldLabel: 'Торговый Счет'
+            }, {
+              xtype: 'hidden',
+              name: 'TreatyID'
+            }, {
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              items: [{
+                xtype: 'numberfield',
+                minValue: 0,
+                name: 'Num',
+                fieldLabel: 'Кол-во(лот)',
+                allowBlank: false,
+                hideTrigger: true,
+                keyNavEnabled: false,
+                mouseWheelEnabled: false,
+                decimalPrecision: 0,
+                decimalSeparator: '.'
+              }]
+            }]
+          }],
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'bottom',
+            ui: 'footer',
+            items: ['->', {
+              iconCls: 'icon-save',
+              itemId: 'save',
+              text: 'Сохранить',
+              disabled: true,
+              scope: this,
+              handler: this.onSave
+            }, {
+              text: 'Отмена',
+              scope: this,
+              handler: this.onCancel
+             }]
+          }]
+        });
+        this.callParent();
+      },
+
+      onBeforeQuery: function (queryPlan) {
+        queryPlan.combo.getStore().proxy.extraParams = {
+          QuikID: this.QuikID
+        }
+      },
+
+      onShowClientCode: function () {
+        var w = Ext.create('Ext.window.Window', {
+          scope: this,
+          title: 'Клиенты',
+          modal: true,
+          width: 500,
+          height: window.innerHeight - 20,
+          layout: 'fit',
+          items: [{
+            xtype: 'clientgrid',
+            QuikID: this.QuikID
+          }],
+          listeners: {
+            scope: this,
+            sel: function (code, acc, tid) {
+              var f = this.down('form').getForm();
+              f.findField('ClientCode').setValue(code);
+              f.findField('ClientAccount').setValue(acc);
+              f.findField('TreatyID').setValue(tid);
+              w.close();
+            }
+          }
+        }).show(this);
+      },
+
+      onShowMyTreatyCode: function () {
+        var w = Ext.create('Ext.window.Window', {
+          scope: this,
+          title: 'Мои Клиенты',
+          modal: true,
+          width: 500,
+          height: window.innerHeight - 20,
+          layout: 'fit',
+          items: [{
+            xtype: 'mtcgrid',
+            QuikID: this.QuikID
+          }],
+          listeners: {
+            scope: this,
+            sel: function (code, acc, tid) {
+              var f = this.down('form').getForm();
+              f.findField('ClientCode').setValue(code);
+              f.findField('ClientAccount').setValue(acc);
+              f.findField('TreatyID').setValue(tid);
+              w.close();
+            }
+          }
+        }).show(this);
+      },
+
+      onSelectClientCode: function (combo, record) {
+        var f = this.down('form').getForm();
+        f.findField('ClientAccount').setValue(record.get('ClientAccount'));
+        f.findField('TreatyID').setValue(record.get('TreatyID'));
+      },
+
+      onClearClientCode: function () {
+        var f = this.down('form').getForm();
+        f.findField('ClientCode').setValue('');
+        f.findField('ClientAccount').setValue('');
+        f.findField('TreatyID').setValue('');
+      },
+
+      setActiveRecord: function (record) {
+        this.activeRecord = record;
+        var form = this.down('form').getForm();
+        if (record) {
+          this.down('#save').enable();
+          form.loadRecord(record);
+          form.clearInvalid();
+        } else {
+          this.down('#save').disable();
+          form.reset();
+        }
+      },
+
+      onSave: function () {
+        var active = this.activeRecord, form = this.down('form').getForm();
+        if (!active) {
+          return;
+        }
+        if (form.isValid()) {
+          form.updateRecord(active);
+          if (this.title == 'Добавить')
+            this.fireEvent('create', this, active);
+          this.hide();
+        }
+      },
+
+      onCancel: function () {
+        this.hide();
+      }
+    });
+
+    Ext.define('ClientGrid.Grid', {
+      extend: 'Ext.grid.Panel',
+      alias: 'widget.clientgrid',
+      initComponent: function () {
+        Ext.apply(this, {
+          store: 'storeqc',
+          columns: [{
+            dataIndex: 'ClientCode',
+            header: 'Код Клиента QUIK',
+            flex: 1
+          }, {
+            dataIndex: 'ClientAccount',
+            header: 'Торговый счет QUIK',
+            flex: 1
+          }],
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'top',
+            items: [{
+              iconCls: 'icon-refresh',
+              text: 'Обновить',
+              handler: this.onRefreshClick,
+              scope: this
+            }]
+          }],
+          viewConfig: {
+            enableTextSelection: true,
+            listeners: {
+              scope: this,
+              beforerender: {
+                fn: this.onRefreshClick
+              },
+              itemdblclick: {
+                fn: this.onSelect
+              },
+              itemclick: {
+                fn: this.onSelectChange
+              }
+            }
+          }
+        });
+        this.callParent();
+      },
+
+      onRefreshClick: function () {
+        this.store.proxy.extraParams = {
+          QuikID: this.QuikID
+        };
+        this.store.load();
+      },
+
+      onSelect: function (view, record, item, index, e) {
+        this.up('window').fireEvent('sel', record.get('ClientCode'), record.get('ClientAccount'), record.get('TreatyID'), record.get('ID'));
+        return false;
+      }
+    });
+
+    Ext.define('MyTreatyCode.Win', {
+      extend: 'Ext.window.Window',
+      alias: 'widget.mtcwin',
+
+      initComponent: function () {
+        Ext.apply(this, {
+          width: 400,
+          closeAction: 'hide',
+          modal: true,
+          buttonAlign: 'center',
+          items: [{
+            xtype: 'form',
+            activeRecord: null,
+            bodyPadding: 10,
+            fieldDefaults: {
+              labelAlign: 'right',
+              labelWidth: 110,
+              msgTarget: 'side',
+              anchor: '100%'
+            },
+            defaultType: 'textfield',
+            items: [{
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              items: [{
+                xtype: 'combo',
+                name: 'ClientCode',
+                store: 'storeqcf',
+                queryParam: 'q',
+                queryMode: 'remote',
+                displayField: 'ClientCode',
+                typeAhead: false,
+                queryDelay: 1000,
+                flex: 1,
+                hideTrigger: true,
+                forceSelection: false,
+                fieldLabel: 'Код Клиента',
+                minChars: 3,
+                listConfig: {
+                },
+                allowBlank: true,
+                listeners: {
+                  scope: this,
+                  select: this.onSelectClientCode,
+                  beforequery: this.onBeforeQuery
+                }
+              }, {
+                xtype: 'button',
+                text: '>',
+                scope: this,
+                handler: this.onShowClientCode
+              }, {
+                xtype: 'button',
+                text: 'X',
+                scope: this,
+                handler: this.onClearClientCode
+              }]
+            }, {
+              name: 'ClientAccount',
+              fieldLabel: 'Торговый Счет',
+              readOnly: true
+              }, {
+                xtype: 'hidden',
+                name: 'TreatyCodeID'
+              }]
+          }],
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'bottom',
+            ui: 'footer',
+            items: ['->', {
+              iconCls: 'icon-save',
+              itemId: 'save',
+              text: 'Сохранить',
+              disabled: true,
+              scope: this,
+              handler: this.onSave
+            }, {
+                text: 'Отмена',
+                scope: this,
+                handler: this.onCancel
+              }]
+          }]
+        });
+        this.callParent();
+      },
+
+      onBeforeQuery: function (queryPlan) {
+        queryPlan.combo.getStore().proxy.extraParams = {
+          QuikID: this.QuikID
+        }
+      },
+
+      onShowClientCode: function () {
+        var w = Ext.create('Ext.window.Window', {
+          scope: this,
+          title: 'Клиенты',
+          modal: true,
+          width: 500,
+          height: window.innerHeight - 20,
+          layout: 'fit',
+          items: [{
+            xtype: 'clientgrid',
+            QuikID: this.QuikID
+          }],
+          listeners: {
+            scope: this,
+            sel: function (code, acc, tid, id) {
+              var f = this.down('form').getForm();
+              f.findField('ClientCode').setValue(code);
+              f.findField('ClientAccount').setValue(acc);
+              f.findField('TreatyCodeID').setValue(id);
+              w.close();
+            }
+          }
+        }).show(this);
+      },
+
+      onSelectClientCode: function (combo, record) {
+        var f = this.down('form').getForm();
+        f.findField('ClientAccount').setValue(record.get('ClientAccount'));
+        f.findField('TreatyCodeID').setValue(record.get('ID'));
+      },
+
+      onClearClientCode: function () {
+        var f = this.down('form').getForm();
+        f.findField('ClientCode').setValue('');
+        f.findField('ClientAccount').setValue('');
+        f.findField('TreatyCodeID').setValue(null);
+      },
+
+      setActiveRecord: function (record) {
+        this.activeRecord = record;
+        var form = this.down('form').getForm();
+        if (record) {
+          this.down('#save').enable();
+          form.loadRecord(record);
+          form.clearInvalid();
+        } else {
+          this.down('#save').disable();
+          form.reset();
+        }
+      },
+
+      onSave: function () {
+        var active = this.activeRecord, form = this.down('form').getForm();
+        if (!active) {
+          return;
+        }
+        if (form.isValid()) {
+          form.updateRecord(active);
+          if (this.title == 'Добавить')
+            this.fireEvent('create', this, active);
+          this.hide();
+        }
+      },
+
+      onCancel: function () {
+        this.hide();
+      }
+    });
+
+    Ext.define('MyTreatyCode.Grid', {
+      extend: 'Ext.grid.Panel',
+      alias: 'widget.mtcgrid',
+      initComponent: function () {
+        Ext.apply(this, {
+          store: 'storemtc',
+          columns: [{
+            dataIndex: 'ClientCode',
+            header: 'Код Клиента QUIK',
+            flex: 1
+          }, {
+            dataIndex: 'ClientAccount',
+            header: 'Торговый счет QUIK',
+            flex: 1
+          }],
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'top',
+            items: [{
+              iconCls: 'icon-refresh',
+              text: 'Обновить',
+              handler: this.onRefreshClick,
+              scope: this
+            }, {
+              iconCls: 'icon-add',
+              text: 'Добавить',
+              scope: this,
+              handler: this.onAddClick
+            }, {
+              iconCls: 'icon-delete',
+              text: 'Удалить',
+              disabled: true,
+              itemId: 'delete',
+              scope: this,
+              handler: this.onDeleteClick
+            }]
+          }],
+          viewConfig: {
+            enableTextSelection: true,
+            listeners: {
+              scope: this,
+              beforerender: {
+                fn: this.onRefreshClick
+              },
+              itemdblclick: {
+                fn: this.onSelect
+              },
+              itemclick: {
+                fn: this.onSelectChange
+              }
+            }
+          }
+        });
+        this.callParent();
+      },
+
+      onRefreshClick: function () {
+        this.store.proxy.extraParams = {
+          QuikID: this.QuikID
+        };
+        this.store.load();
+      },
+
+      onAddClick: function () {
+        var me = this;
+        var rec = new MyTreatyCln({  });
+        if (!me.wini) {
+          me.onCreateWin();
+        }
+        me.wini.setTitle('Добавить');
+        me.wini.setActiveRecord(rec);
+        me.wini.QuikID = this.QuikID;
+        me.wini.show(me);
+      },
+
+      onCreateWin: function () {
+        this.wini = Ext.create('MyTreatyCode.Win', {
+          scope: this,
+          listeners: {
+            scope: this,
+            create: function (form, data) {
+              this.store.insert(0, data);
+              this.store.sync();
+            },
+            update: function () {
+              this.store.sync();
+            }
+          }
+        });
+      },
+
+      onSelectChange: function (selModel, selections) {
+        this.down('#delete').setDisabled(selections.length === 0);
+      },
+
+      onDeleteClick: function () {
+        var selection = this.getView().getSelectionModel().getSelection()[0];
+        if (selection) {
+          if (window.confirm('Удалить стр.?')) {
+            this.store.remove(selection);
+            this.store.sync();
+          }
+        }
+      },
+
+      onSelect: function (view, record, item, index, e) {
+        this.up('window').fireEvent('sel', record.get('ClientCode'), record.get('ClientAccount'), record.get('TreatyID'));
+        return false;
+      }
+    });
+
+    Ext.define('QuikCln.Grid', {
+      extend: 'Ext.grid.Panel',
+      alias: 'widget.qclngrid',
+      initComponent: function () {
+        Ext.apply(this, {
+          wini: null,
+          invalidateScrollerOnRefresh: false,
+          viewConfig: {
+            preserveScrollOnRefresh: true,
+            enableTextSelection: true
+          },
+          columns: [{
+            xtype: 'checkcolumn',
+            dataIndex: 'ui',
+            width: 30
+          }, {
+            header: "Код Клиента QUIK",
+            dataIndex: 'ClientCode',
+            flex: 1
+          }, {
+            header: "Торговый счет QUIK",
+            dataIndex: 'ClientAccount',
+            flex: 1
+          }, {
+            header: 'Кол-во(лот)',
+            dataIndex: 'Num',
+            width: 100
+          }],
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'top',
+            items: [{
+              iconCls: 'icon-user-add',
+              text: 'Добавить',
+              scope: this,
+              handler: this.onAddClick
+            }, {
+              text: 'Изменить',
+              disabled: true,
+              itemId: 'change',
+              scope: this,
+              handler: this.onChangeClick
+            }, {
+              iconCls: 'icon-delete',
+              text: 'Удалить',
+              disabled: true,
+              itemId: 'delete',
+              scope: this,
+              handler: this.onDeleteClick
+            }]
+          }]
+        })
+        this.callParent();
+        this.getSelectionModel().on('selectionchange', this.onSelectChange, this);
+        this.on('itemdblclick', this.onRowDblClick, this);
+      },
+
+      onRefreshClick: function () {
+        var me = this;
+        me.store.proxy.extraParams = { cd: me.CreateDate };
+        me.store.load();
+      },
+
+      onSelectChange: function (selModel, selections) {
+        this.down('#delete').setDisabled(selections.length === 0);
+        this.down('#change').setDisabled(selections.length === 0);
+      },
+
+      onCreateWin: function () {
+        this.wini = Ext.create('QuikCln.Win', {
+          scope: this,
+          listeners: {
+            scope: this,
+            create: function (form, data) {
+              this.store.insert(0, data);
+            }
+          }
+        });
+      },
+
+      onAddClick: function () {
+        var me = this;
+        var rec = Ext.create('QuikDeal', { DateDeal: Ext.Date.add(Ext.Date.clearTime(new Date(), false)), Trans_ID: 1, CreateDate: me.CreateDate, Form: 1 });
+        if (!me.wini) {
+          me.onCreateWin();
+        }
+        me.wini.QuikID = me.QuikID;
+        me.wini.setTitle('Добавить');
+        me.wini.setActiveRecord(rec);
+        me.wini.show(me);
+      },
+
+      onChangeClick: function () {
+        var me = this;
+        if (!this.wini) {
+          this.onCreateWin();
+        }
+        me.wini.QuikID = me.QuikID;
+        this.wini.setTitle('Изменить');
+        this.wini.setActiveRecord(this.getSelectionModel().getSelection()[0]);
+        this.wini.show(this);
+      },
+
+      onRowDblClick: function () {
+        this.onChangeClick();
+      },
+
+      onDeleteClick: function () {
+        var selection = this.getView().getSelectionModel().getSelection()[0];
+        if (selection) {
+          if (window.confirm('Удалить стр.?')) {
+            this.store.remove(selection);
+          }
+        }
+      }
+    });
+
+    Ext.define('QuikSec.Grid', {
+      extend: 'Ext.grid.Panel',
+      alias: 'widget.qsecgrid',
+      initComponent: function () {
+        Ext.apply(this, {
+          wini: null,
+          invalidateScrollerOnRefresh: false,
+          viewConfig: {
+            preserveScrollOnRefresh: true,
+            enableTextSelection: true
+          },
+          columns: [{
+            xtype: 'checkcolumn',
+            dataIndex: 'ui',
+            width: 30
+          }, {
+            header: 'ЦБ',
+            dataIndex: 'Brief',
+            width: 90
+          }, {
+            header: 'Код',
+            dataIndex: 'Name',
+            width: 90
+          }, {
+            header: 'ISIN',
+            dataIndex: 'ISIN',
+            width: 90
+          }, {
+            header: 'Класс',
+            dataIndex: 'ClassCode',
+            width: 50
+          }, {
+            header: 'Кол-во(лот)',
+            dataIndex: 'Num',
+            width: 100
+          }],
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'top',
+            items: [{
+              iconCls: 'icon-user-add',
+              text: 'Добавить',
+              scope: this,
+              handler: this.onAddClick
+            }, {
+              text: 'Изменить',
+              disabled: true,
+              itemId: 'change',
+              scope: this,
+              handler: this.onChangeClick
+            }, {
+              iconCls: 'icon-delete',
+              text: 'Удалить',
+              disabled: true,
+              itemId: 'delete',
+              scope: this,
+              handler: this.onDeleteClick
+            }]
+          }]
+        })
+        this.callParent();
+        this.getSelectionModel().on('selectionchange', this.onSelectChange, this);
+        this.on('itemdblclick', this.onRowDblClick, this);
+      },
+
+      onRefreshClick: function () {
+        var me = this;
+        me.store.proxy.extraParams = { cd: me.CreateDate };
+        me.store.load();
+      },
+
+      onSelectChange: function (selModel, selections) {
+        this.down('#delete').setDisabled(selections.length === 0);
+        this.down('#change').setDisabled(selections.length === 0);
+      },
+
+      onCreateWin: function () {
+        this.wini = Ext.create('QuikSec.Win', {
+          scope: this,
+          listeners: {
+            scope: this,
+            create: function (form, data) {
+              this.store.insert(0, data);
+            }
+          }
+        });
+      },
+
+      onAddClick: function () {
+        var me = this;
+        var rec = Ext.create('QuikDeal', { DateDeal: Ext.Date.add(Ext.Date.clearTime(new Date(), false)), Trans_ID: 1, CreateDate: me.CreateDate, Form: 2 });
+        if (!me.wini) {
+          me.onCreateWin();
+        }
+        me.wini.QuikID = me.QuikID;
+        me.wini.setTitle('Добавить');
+        me.wini.setActiveRecord(rec);
+        me.wini.show(me);
+      },
+
+      onChangeClick: function () {
+        var me = this;
+        if (!this.wini) {
+          this.onCreateWin();
+        }
+        me.wini.QuikID = me.QuikID;
+        this.wini.setTitle('Изменить');
+        this.wini.setActiveRecord(this.getSelectionModel().getSelection()[0]);
+        this.wini.show(this);
+      },
+
+      onRowDblClick: function () {
+        this.onChangeClick();
+      },
+
+      onDeleteClick: function () {
+        var selection = this.getView().getSelectionModel().getSelection()[0];
+        if (selection) {
+          if (window.confirm('Удалить стр.?')) {
+            this.store.remove(selection);
+          }
+        }
+      }
+    });
+
+    Ext.define('QuikDeal.Grid', {
+      extend: 'Ext.grid.Panel',
+      alias: 'widget.qdgrid',
+      initComponent: function () {
+        Ext.apply(this, {
+          wini: [null, null],
+          defaultType: 'textfield',
+          invalidateScrollerOnRefresh: false,
+          layoutConfig: { labelSeparator: '' },
+          viewConfig: {
+            preserveScrollOnRefresh: true,
+            enableTextSelection: true,
+            getRowClass: function (record) {
+            }
+          },
+          features: [{
+            ftype: 'groupingsummary',
+            collapsible: true,
+            depthToIndent: 5,
+            enableGroupingMenu: true,
+            enableNoGroups: true,
+            hideGroupedHeader: true,
+            startCollapsed: false,
+            showSummaryRow: false
+          }],
+          plugins: 'gridfilters',
+          columns: [{
+            header: 'QUIK',
+            dataIndex: 'QuikName',
+            width: 90
+          }, {
+            header: 'ЦБ',
+            dataIndex: 'Brief',
+            width: 90
+          }, {
+            header: 'Код',
+            dataIndex: 'Name',
+            width: 90
+          }, {
+            header: 'ISIN',
+            dataIndex: 'ISIN',
+            width: 90
+          }, {
+            header: 'Класс',
+            dataIndex: 'ClassCode',
+            width: 50
+          }, {
+            header: 'Дата',
+            xtype: 'datecolumn',
+            format: 'd.m.Y',
+            dataIndex: 'DateDeal',
+            width: 80
+          }, {
+            header: 'Код Клиента',
+            dataIndex: 'ClientCode',
+            width: 80
+          }, {
+            header: 'Счет',
+            dataIndex: 'ClientAccount',
+            width: 90
+          }, {
+            dataIndex: 'TypeStr',
+            header: 'Тип',
+            width: 40
+          }, {
+            dataIndex: 'Dir',
+            header: 'B/S',
+            width: 40
+          }, {
+            dataIndex: 'Num',
+            header: 'Кол-во(лот)',
+            width: 80,
+            align: 'end'
+          }, {
+            dataIndex: 'DealPrice',
+            header: 'Цена',
+            width: 80,
+            xtype: 'numbercolumn',
+            align: 'end'
+          }, {
+            dataIndex: 'Status',
+            header: 'Статус',
+            width: 100
+          }, {
+            dataIndex: 'TypeOName',
+            header: 'Тип заявки',
+            width: 100
+          }, {
+            dataIndex: 'Comment',
+            header: 'Ответ QUIK',
+            width: 240,
+            tdCls: 'wrap-text'
+          }, {
+            dataIndex: 'OrderNum',
+            header: 'OrderNum',
+            width: 100
+          }, {
+            dataIndex: 'CreateDate',
+            header: 'Дата создания',
+            xtype: 'datecolumn',
+            format: 'd.m.Y H:i:s',
+            width: 120
+          }, {
+            dataIndex: 'UserName',
+            hidden: true,
+            header: 'Юзер',
+            width: 120
+          }, {
+            dataIndex: 'TreatyID',
+            hidden: true,
+            header: 'TreatyID',
+            width: 30
+          }],
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'top',
+            items: [{
+              xtype: 'tbtext', text: ' Период: '
+            }, {
+              xtype: 'datefield',
+              itemId: 'd1',
+              allowBlank: false,
+              format: 'd.m.Y',
+              vtype: 'daterange',
+              endDateField: 'd2',
+              startDay: 1,
+              value: Ext.Date.add(Ext.Date.clearTime(new Date(), false), Ext.Date.DAY, 0),
+              width: 100
+            }, ' ', {
+              xtype: 'datefield',
+              itemId: 'd2',
+              allowBlank: false,
+              format: 'd.m.Y',
+              vtype: 'daterange',
+              startDateField: 'd1',
+              startDay: 1,
+              value: Ext.Date.add(Ext.Date.clearTime(new Date(), false), Ext.Date.DAY, 0),
+              width: 100,
+              margin: '0 5 0 0'
+            }, {
+              iconCls: 'icon-refresh',
+              text: 'Обновить',
+              scope: this,
+              handler: this.onRefreshClick
+            }, {
+              text: 'Добавить',
+              xtype: 'button',
+              iconCls: 'icon-user-add',
+              scope: this,
+              menu: {
+                items: [{
+                  text: 'клиентов',
+                  scope: this,
+                  handler: this.onAddClnClick
+                }, {
+                  text: 'бумаги',
+                  scope: this,
+                  handler: this.onAddSecClick
+                }]
+              }
+            }, {
+              text: 'Изменить',
+              disabled: true,
+              itemId: 'change',
+              scope: this,
+              handler: this.onChangeClick
+            }, {
+              iconCls: 'icon-delete',
+              text: 'Удалить',
+              disabled: true,
+              itemId: 'delete',
+              scope: this,
+              handler: this.onDeleteClick
+            }, {
+              xtype: 'tbtext', text: ' QUIK: '
+            }, {
+              itemId: 'QuikID',
+              xtype: 'combo',
+              store: qustore, //'storequ',
+              displayField: 'Name',
+              valueField: 'ID',
+              typeAhead: true,
+              queryMode: 'local',
+              selectOnFocus: true,
+              listeners: {
+                scope: this,
+                'selectionchange': this.onQuikSelectChange
+              }
+            }, {
+              text: 'Операция',
+              menu: [{
+                text: 'Поставить',
+                disabled: true,
+                itemId: 'send',
+                scope: this,
+                handler: this.onSendQuikOrder
+              }]
+            }, {
+              xtype: 'exporterbutton',
+              text: 'Экспорт',
+              action: '@Url.Action("ExportExcel", "Home", new { area = "" })',
+              file: 'Поручения.xml'
+            }]
+          }]
+        })
+        this.callParent();
+        this.getSelectionModel().on('selectionchange', this.onSelectChange, this);
+        this.on('itemdblclick', this.onRowDblClick, this);
+      },
+
+      onRefreshClick: function () {
+        var me = this;
+        me.store.proxy.extraParams = { d1: me.down('#d1').getValue(), d2: me.down('#d2').getValue() };
+        me.store.load();
+      },
+
+      onSelectChange: function (selModel, selections) {
+        this.down('#delete').setDisabled(selections.length === 0);
+        this.down('#change').setDisabled(selections.length === 0);
+        this.down('#send').setDisabled(selections.length === 0 || selections[0].get('StatusID') > 0);
+      },
+
+      onQuikSelectChange: function (selModel, selections) {
+        this.down('#add').setDisabled(selections.length === 0);
+      },
+      onCreateWin: function (f) {
+        this.wini[f - 1] = Ext.create(f == 2 ? 'QuikDealSec.Win' : 'QuikDealCln.Win', {
+          scope: this,
+          listeners: {
+            scope: this,
+            create: function (form, data) {
+              this.store.insert(0, data);
+              this.store.sync();
+            },
+            update: function () {
+              this.store.sync();
+            }
+          }
+        });
+      },
+
+      onAddClnClick: function () {
+        this.onAddClick(1);
+      },
+      onAddSecClick: function () {
+        this.onAddClick(2);
+      },
+
+      onAddClick: function (f) {
+        var me = this;
+        Ext.Ajax.request({
+          url: '@Url.Action("getCreateDate")',
+          params: {},
+          success: function (response) {
+            var jr = Ext.decode(response.responseText);
+            if (jr.success === true) {
+              me.CreateDate = Ext.Date.parse(jr.Data, 'c');
+              if (!me.wini[f - 1]) {
+                me.onCreateWin(f);
+              }
+              var len = me.down('#QuikID').valueCollection.getCount();
+              var rec = Ext.create('QuikDeal', {
+                DateDeal: Ext.Date.add(Ext.Date.clearTime(new Date(), false)),
+                Trans_ID: 1,
+                CreateDate: me.CreateDate,
+                Form: f,
+                QuikID: me.down('#QuikID').getValue(),
+                Path: len > 0 ? me.down('#QuikID').valueCollection.getRange()[0].get('Path') : '',
+                StatusID: 0
+              });
+              me.wini[f - 1].setTitle('Добавить');
+              me.wini[f - 1].setActiveRecord(rec);
+              me.wini[f - 1].setCreateDate(me.CreateDate);
+              me.wini[f - 1].show(me);
+            }
+          },
+          scope: this,
+          failure: function (response) {
+            alert('Ошибка!');
+          }
+        });
+      },
+
+      onChangeClick: function () {
+        var me = this;
+        var rec = me.getSelectionModel().getSelection()[0];
+        var f = rec.get('Form');
+        if (!me.wini[f - 1]) {
+          me.onCreateWin(f);
+        }
+        me.wini[f - 1].setCreateDate(rec.get('CreateDate'));
+        me.wini[f - 1].setTitle('Изменить');
+        me.wini[f - 1].setActiveRecord(rec);
+        me.wini[f - 1].show(me);
+      },
+
+      onRowDblClick: function () {
+        this.onChangeClick();
+      },
+
+      onSync: function () {
+        this.store.sync();
+      },
+
+      onDeleteClick: function () {
+        var selection = this.getView().getSelectionModel().getSelection()[0];
+        if (selection) {
+          if (window.confirm('Удалить стр.?')) {
+            this.store.remove(selection);
+            this.onSync();
+          }
+        }
+      },
+
+      onClearFilterClick: function () {
+        this.filters.clearFilters();
+      },
+
+      checkQuikDeal: function (cd) {
+        return new Ext.Promise(function (resolve, reject) {
+          Ext.Ajax.request({
+            url: '@Url.Action("checkQuikDeal")',
+            params: { cd: cd },
+            success: function (response) {
+              resolve(response.responseText);
+            },
+            failure: function (response) {
+              reject(response.status);
+            },
+            scope: this
+          });
+        });
+      },
+
+      addQuikModDeal: function (cd) {
+        return new Ext.Promise(function (resolve, reject) {
+          Ext.Ajax.request({
+            url: '@Url.Action("addQuikModDeal")',
+            params: { cd: cd },
+            success: function (response) {
+              resolve(response.responseText);
+            },
+            failure: function (response) {
+              reject(response.status);
+            },
+            scope: this
+          });
+        });
+      },
+
+      loadCheckDeclModDeal: function (cd) {
+        var store = Ext.data.StoreManager.lookup('storeCheckDeclModDeal');
+        store.proxy.extraParams = { dt: cd };
+        return new Ext.Promise(function (resolve, reject) {
+          store.load({
+            callback: function (records, operation, success) {
+              if (success) {
+                resolve(records);
+              }
+              else {
+                reject('Error CheckDecl');
+              }
+            }
+          });
+        });
+      },
+
+      sendQuikDeal: function (cd) {
+        return new Ext.Promise(function (resolve, reject) {
+          Ext.Ajax.request({
+            url: '@Url.Action("sendQuikOrder")',
+            params: { cd: cd },
+            success: function (response) {
+              resolve(response.responseText);
+            },
+            failure: function (response) {
+              reject(response.status);
+            },
+            scope: this
+          });
+        });
+      },
+
+      onSendQuikOrder: function () {
+        var me = this;
+        Ext.Msg.show({
+          title: 'QUIK', message: "Выполнить проверку?", buttons: Ext.Msg.YESNO, icon: Ext.window.MessageBox.QUESTION, fn: function (btn, text) {
+            if (btn == 'yes') {
+              Ext.Msg.wait('Выполняется проверка', 'Проверка');
+              var rec = me.getSelectionModel().getSelection()[0];
+              var cd = rec.get('CreateDate');
+              me.checkQuikDeal(cd).then(
+                function (restText) {
+                  var jr = Ext.decode(restText);
+                  if (jr.success === true) {
+                    me.addQuikModDeal(cd).then(
+                      function (restText) {
+                        if (Ext.decode(restText).success == true) {
+                          me.loadCheckDeclModDeal(cd).then(
+                            function (records) {
+                              if (records.length === 0) {
+                                Ext.Msg.hide();
+                                Ext.Msg.show({
+                                  title: 'QUIK',
+                                  message: "Проверка выполнена, нарушений нет. Отправить серию в QUIK (1 мин.)?",
+                                  buttons: Ext.Msg.YESNO,
+                                  icon: Ext.window.MessageBox.QUESTION,
+                                  wait: true,
+                                  waitConfig: {
+                                    duration: 60000, interval: 6000, fn: function () { Ext.Msg.hide(); Ext.Msg.alert('Info', 'Истекло время'); }
+                                  },
+                                  fn: function (btn) {
+                                    if (btn == 'yes') {
+                                      me.sendQuikDeal(cd).then(
+                                        function (restText) {
+                                          if (Ext.decode(restText).success === true) {
+                                            Ext.Msg.alert('Info', 'Success');
+                                          }
+                                          else
+                                            Ext.Msg.alert('Info', 'No Success');
+                                        },
+                                        function () {
+                                          Ext.Msg.alert('Info', 'Ошибка!');
+                                        }
+                                      );
+                                    }
+                                  }
+                                });
+                              }
+                              else {
+                                var w = Ext.create('Ext.window.Window', {
+                                  scope: me,
+                                  title: 'Кол-во нарушений: ' + records.length,
+                                  modal: true,
+                                  width: 1200,
+                                  height: window.innerHeight - 100,
+                                  layout: 'fit',
+                                  items: [{
+                                    xtype: 'checkdeclgrid',
+                                    store: 'storeCheckDeclModDeal'
+                                  }],
+                                  listeners: {
+                                    scope: me,
+                                    clo: function () {
+                                      w.close();
+                                    }
+                                  }
+                                }).show(me);
+                              }
+                            },
+                            function (error) {
+                              Ext.Msg.alert('Info', 'Проверка не выполнена');
+                            }
+                          );
+                        }
+                      }
+                    );
+                  }
+                  else {
+                    Ext.Msg.alert('Info', jr.message);
+                  }
+                }
+              );
+            }
+          },
+          scope: me
+        });
+      }
+
+    });
+
+    Ext.define('CheckDeclGrid.Grid', {
+      extend: 'Ext.grid.Panel',
+      alias: 'widget.checkdeclgrid',
+      initComponent: function () {
+        Ext.apply(this, {
+          columns: [{
+            dataIndex: 'TreatyName',
+            header: 'Договор',
+            width: 120
+          }, {
+            dataIndex: 'FinInstName',
+            header: 'Клиент',
+            width: 120
+          }, {
+            dataIndex: 'IDName',
+            header: 'Декларация',
+            width: 150
+          }, {
+            dataIndex: 'NameWhere',
+            header: 'Условие',
+            width: 100
+          }, {
+            dataIndex: 'StartValue',
+            header: 'От',
+            xtype: 'numbercolumn',
+            width: 50,
+            align: 'end'
+          }, {
+            dataIndex: 'StopValue',
+            header: 'до',
+            xtype: 'numbercolumn',
+            width: 50,
+            align: 'end'
+          }, {
+            dataIndex: 'coef',
+            header: 'коэф',
+            xtype: 'numbercolumn',
+            format: '0.00#',
+            width: 70,
+            align: 'end'
+          }, {
+            dataIndex: 'numerator',
+            header: 'Числитель',
+            xtype: 'numbercolumn',
+            width: 100,
+            align: 'end'
+          }, {
+            dataIndex: 'denominator',
+            header: 'Знаменатель',
+            xtype: 'numbercolumn',
+            width: 100,
+            align: 'end'
+          }, {
+            dataIndex: 'Num',
+            header: 'Кол-во',
+            width: 80,
+            align: 'end'
+          }, {
+            dataIndex: 'Course',
+            header: 'Цена',
+            width: 90,
+            align: 'end'
+          }, {
+            dataIndex: 'Qty',
+            header: 'Стоимость',
+            xtype: 'numbercolumn',
+            width: 90,
+            align: 'end'
+          }, {
+            dataIndex: 'coefS',
+            header: 'коэф',
+            xtype: 'numbercolumn',
+            format: '0.00#',
+            width: 70,
+            align: 'end'
+          }],
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'top',
+            items: [{
+              iconCls: 'icon-refresh',
+              text: 'Закрыть',
+              handler: this.onCloseClick,
+              scope: this
+            }]
+          }],
+          viewConfig: {
+            enableTextSelection: true,
+            listeners: {
+            }
+          }
+        });
+        this.callParent();
+      },
+
+      onCloseClick: function () {
+        this.up('window').fireEvent('clo');
+        return false;
+      }
+    });
+
+    Ext.onReady(function () {
+      Ext.tip.QuickTipManager.init();
+      Ext.create('Ext.Viewport', {
+        layout: 'border',
+        items: [{
+          region: 'north',
+          border: false,
+          contentEl: 'header'
+        }, {
+          region: 'center',
+          itemId: 'grid',
+          border: false,
+          xtype: 'qdgrid',
+          store: 'storeqd'
+        }]
+      });
+    });
+
+  </script>
+}
