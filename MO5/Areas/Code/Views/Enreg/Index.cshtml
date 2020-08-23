@@ -40,6 +40,9 @@
       /*text-decoration: line-through;*/
       color: gray;
   }
+    .upload-icon {
+      background-image: url(@Href("~/Content/images/image_add.png"));
+    }
     .search-item
     {
       font: normal 11px tahoma, arial, helvetica, sans-serif;
@@ -145,12 +148,14 @@
         { name: 'FileName', type: 'string' },
         { name: 'FileNameO', type: 'string' },
         { name: 'FileNameD', type: 'string' },
+        { name: 'FileNameG', type: 'string' },
         { name: 'MethodID', type: 'int' },
         { name: 'Method', type: 'string', persist: false },
         { name: 'StatusID', type: 'int' },
         { name: 'Status', type: 'string', persist: false },
         { name: 'Qty', type: 'number' },
         { name: 'Step', type: 'int', allowNull: true },
+        { name: 'StepName', type: 'string', persist: false},
         { name: 'IsStepConfirmed', type: 'bool' }
       ]
     });
@@ -219,6 +224,30 @@
     Ext.create('Ext.data.Store', {
       storeId: 'storeEnregLog',
       model: 'EnregLog'
+    });
+
+    Ext.define('EnregStepLog', {
+      extend: 'Ext.data.Model',
+      remoteSort: true,
+      idProperty: 'id',
+      fields: ['id', 'Step', 'Name', 'EmailTo', 'IsConfirmed', { name: 'InDateTime', type: 'date', dateFormat: 'c' }, { name: 'InDateTimeC', type: 'date', dateFormat: 'c' }, 'UserName' ],
+      autoLoad: false,
+      autoSync: false,
+      proxy: {
+        type: 'ajax',
+        url: '@Url.Action("getEnregStepLog")',
+        actionMethods: { read: 'POST' },
+        reader: {
+          type: 'json',
+          rootProperty: 'data',
+        },
+        simpleSortMode: true
+      }
+    });
+
+    Ext.create('Ext.data.Store', {
+      storeId: 'storeEnregStepLog',
+      model: 'EnregStepLog'
     });
 
     Ext.define('EnregLog.Win', {
@@ -885,11 +914,22 @@
                 }
               }]
             }, {
-              xtype: 'textfield',
-              id: 'FileName',
-              name: 'FileName',
-              fieldLabel: 'Файл',
-              readOnly: true
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              items: [{
+                xtype: 'textfield',
+                id: 'FileName',
+                name: 'FileName',
+                fieldLabel: 'Файл',
+                readOnly: true,
+                flex: 1
+              }, {
+                xtype: 'button',
+                text: 'X',
+                margin: '0 0 0 3',
+                scope: this,
+                handler: this.onClearFileName
+              }]
             }],
             listeners: {
             }
@@ -906,10 +946,10 @@
               scope: this,
               handler: this.onSave
             }, {
-              text: 'Отмена',
-              scope: this,
-              handler: this.onCancel
-            }]
+                text: 'Отмена',
+                scope: this,
+                handler: this.onCancel
+              }]
           }]
         });
         this.callParent();
@@ -935,6 +975,11 @@
         fn.name = name;
       },
 
+      onClearFileName: function () {
+        var me = this;
+        me.down('form').getForm().findField("FileName").setValue('');
+      },
+
       setUrl: function (_fileurl) {
         var me = this
         me.fileurl = _fileurl
@@ -957,6 +1002,51 @@
       }
     });
 
+    Ext.define('EnregStepLog.Grid', {
+      extend: 'Ext.grid.Panel',
+      alias: 'widget.enregsteploggrid',
+      initComponent: function () {
+        Ext.apply(this, {
+          columns: [{
+            header: 'Шаг',
+            dataIndex: 'Step',
+            width: 100,
+            renderer: function (value, metaData, record) {
+              if (!record.get('IsConfirmed'))
+                if (metaData)
+                  metaData.tdStyle = 'color: red';
+              var sn = record.get('Name');
+              return (value ? value : '') + (sn ? ' - ' + record.get('Name') : '');
+            }
+          }, {
+            header: 'Получено',
+            dataIndex: 'InDateTime',
+            width: 130,
+            xtype: 'datecolumn',
+            format: 'd.m.Y H:i:s'
+            }, {
+              header: 'Пользователь',
+              dataIndex: 'UserName',
+              width: 250
+            }, {
+            header: 'Подтверждено',
+            dataIndex: 'InDateTimeC',
+            width: 130,
+            xtype: 'datecolumn',
+            format: 'd.m.Y H:i:s'
+          }],
+          viewConfig: {
+            enableTextSelection: true,
+            listeners: {
+              scope: this
+            }
+          }
+        });
+        this.callParent();
+      }
+
+    });
+
     Ext.define('Enreg.Grid', {
       extend: 'Ext.grid.Panel',
       alias: 'widget.enreggrid',
@@ -965,19 +1055,36 @@
           wini: null,
           border: false,
           loadMask: true,
+          plugins: {
+            gridfilters: {
+              menuFilterText: 'Фильтр'
+            }
+          },
           columns: [{
             header: 'Номер',
             dataIndex: 'Numero',
-            width: 90
+            width: 90,
+            filter: {
+              type: 'string',
+              emptyText: 'Номер'
+            }
           }, {
             header: 'Клиент',
             dataIndex: 'ClnName',
             width: 170,
-            tdCls: 'wrap-text'
+            tdCls: 'wrap-text',
+            filter: {
+              type: 'string',
+              emptyText: 'Клиент'
+            }
           }, {
             header: 'Договор',
             dataIndex: 'trNameBrief',
-            width: 95
+            width: 95,
+            filter: {
+              type: 'string',
+              emptyText: 'Договор'
+            }
           }, {
             header: 'Дата получения',
             dataIndex: 'RecuDate',
@@ -993,41 +1100,68 @@
           }, {
             header: 'Статус поручения',
             dataIndex: 'Status',
+            filter: {
+              type: 'list'
+            }
           }, {
             header: 'Оригинал',
             dataIndex: 'Original',
             trueText: 'Да',
             falseText: 'Нет',
             width: 60,
-            xtype: 'booleancolumn'
+            xtype: 'booleancolumn',
+            filter: {
+              type: 'boolean',
+              yesText: 'Да',
+              noText: 'Нет'
+            }
           }, {
             header: 'Скан-копия',
             dataIndex: 'ScanCopy',
             trueText: 'Да',
             falseText: 'Нет',
             width: 50,
-            xtype: 'booleancolumn'
+            xtype: 'booleancolumn',
+            filter: {
+              type: 'boolean',
+              yesText: 'Да',
+              noText: 'Нет'
+            }
           }, {
             header: 'Полный вывод',
             dataIndex: 'FullOut',
             trueText: 'Да',
             falseText: 'Нет',
             width: 50,
-            xtype: 'booleancolumn'
+            xtype: 'booleancolumn',
+            filter: {
+              type: 'boolean',
+              yesText: 'Да',
+              noText: 'Нет'
+            }
           }, {
             header: 'Тип документа',
             dataIndex: 'DTName',
             width: 195,
-            tdCls: 'wrap-text'
+            tdCls: 'wrap-text',
+            filter: {
+              type: 'list'
+            }
           }, {
             header: 'Сотрудник',
             dataIndex: 'EmployeNom',
-            width: 95
+            width: 95,
+            filter: {
+              type: 'list'
+            }
           }, {
             header: 'Метод',
             dataIndex: 'Method',
             width: 195,
-            tdCls: 'wrap-text'
+            tdCls: 'wrap-text',
+            filter: {
+              type: 'list'
+            }
           }, {
             header: 'Шаг',
             dataIndex: 'Step',
@@ -1035,9 +1169,13 @@
               if (!record.get('IsStepConfirmed'))
                 if (metaData)
                   metaData.tdStyle = 'color: red';
-              return value;
+              var sn = record.get('StepName');
+              return (value ? value : '') + (sn ? ' - ' + record.get('StepName') : '');
             },
-            width: 50
+            width: 100,
+            filter: {
+              type: 'list'
+            }
           }, {
             header: 'Примечание',
             dataIndex: 'Remarque',
@@ -1050,23 +1188,28 @@
           }, {
             header: 'Тип дней',
             dataIndex: 'DayDogType',
-            width: 90
+            width: 90,
+            filter: {
+              type: 'list'
+            }
           }, {
             header: 'Дата исполнения(план)',
             dataIndex: 'DateDog',
             width: 90,
             xtype: 'datecolumn',
-            format: 'd.m.Y'
-          }, @*{
-            header: 'Дней фактчески',
-            dataIndex: 'DaysFact',
-            width: 70
-          },*@ {
+            format: 'd.m.Y',
+            filter: {
+              type: 'date'
+            }
+          }, {
             header: 'Дата фактическая',
             dataIndex: 'DateFact',
             width: 70,
             xtype: 'datecolumn',
-            format: 'd.m.Y'
+            format: 'd.m.Y',
+            filter: {
+              type: 'date'
+            }
           }, {
             header: 'Сумма',
             dataIndex: 'Qty',
@@ -1080,7 +1223,10 @@
               if (!value) return '';
               return Ext.String.format('<a href="@Url.Action("GetFile")?data={1}" target="_blank">{0}</a>', value, encodeURIComponent(value));
             },
-            width: 185
+            width: 185,
+            filter: {
+              type: 'number'
+            }
           }, {
             header: 'Платежный документ',
             dataIndex: 'FileNameO',
@@ -1095,6 +1241,14 @@
             renderer: function (value) {
               if (!value) return '';
               return Ext.String.format('<a href="@Url.Action("GetFileD")?data={1}" target="_blank">{0}</a>', value, encodeURIComponent(value));
+            },
+            width: 185
+          }, {
+            header: 'Голосовое файл',
+            dataIndex: 'FileNameG',
+            renderer: function (value, metaData, record) {
+              if (!value) return '';
+              return Ext.String.format('<a href="@Url.Action("GetFileG")/{1}" target="_blank">{0}</a>', value, record.get('id'));
             },
             width: 185
           }],
@@ -1170,6 +1324,10 @@
                   text: 'Дополнительный документ',
                   scope: this,
                   handler: this.onFileFormDClick
+                }, {
+                  text: 'Файл голосовое',
+                  scope: this,
+                  handler: this.onFileFormGClick
                 }]
               }
             }, @*{
@@ -1202,7 +1360,36 @@
               disabled: true,
               scope: this,
               handler: this.onConfirmClick
+            }, {
+              text: 'Очистить фильтр',
+              itemId: 'clearFilter',
+              scope: this,
+              handler: this.onClearFilterClick
             }, '->', {
+              xtype: 'checkbox',
+              itemId: 'cbAuto',
+              checked: false,
+              boxLabel: 'Автообновление',
+              scope: this,
+              handler: this.onAutoChange
+            }, {
+              xtype: 'combo',
+              store: {
+                xtype: 'store',
+                fields: ['tm', 'tmv'],
+                data: [{ tm: '5 мин.', tmv: 300000 }, { tm: '10 мин.', tmv: 600000 }]
+              },
+              itemId: 'tm',
+              displayField: 'tm',
+              valueField: 'tmv',
+              querymodal: 'local',
+              forceSelection: true,
+              value: 600000,
+              listeners: {
+                scope: this,
+                change: this.onTmChange
+              }
+            }, {
               text: 'Настройка',
               iconCls: 'icon-setting',
               handler: function () { window.location = '@Url.Action("dtsteps")' }
@@ -1214,6 +1401,7 @@
             listeners: {
               scope: this,
               itemdblclick: this.onChangeClick,
+              itemclick: this.onItemClick,
               selectionchange: this.onSelectChange
             },
             getRowClass: function (record) {
@@ -1223,6 +1411,31 @@
           }
         })
         this.callParent();
+      },
+
+      onAutoChange: function (me, newValue) {
+        var me = this
+        if (newValue) {
+          var tm = me.down('#tm');
+          var interval = tm ? tm.getValue() : 10 * 60 * 1000;
+          if (me.curTimer)
+            clearTimeout(me.curTimer);
+          me.curTimer = setTimeout(function request() {
+            me.onRefreshClick();
+            me.curTimer = setTimeout(request, interval);
+          }, interval);
+        }
+        else {
+          if (me.curTimer)
+            clearTimeout(me.curTimer);
+        }
+      },
+
+      onTmChange: function () {
+        var me = this;
+        var cbAuto = me.down('#cbAuto');
+        if (cbAuto.getValue() === true)
+          cbAuto.setValue(false);
       },
 
       onRefreshClick: function () {
@@ -1273,6 +1486,16 @@
             }
           }
         });
+      },
+
+      onItemClick: function (me, record) {
+        var grid = this.up('viewport').down('#steplog');
+        if (grid) {
+          if (record) {
+            grid.store.proxy.extraParams = { id: record.get('id') };
+            grid.store.load();
+          }
+        }
       },
 
       onSelectChange: function (selModel, selections) {
@@ -1390,6 +1613,30 @@
         this.winf.setFileName('FileNameD');
         this.winf.setActiveRecord(rec);
         this.winf.show(this);
+      },
+
+      onFileFormGClick: function () {
+        if (!this.winf) {
+          this.winf = Ext.create('EnregF.Win', {
+            scope: this,
+            listeners: {
+              scope: this,
+              update: function () {
+                this.store.sync();
+              }
+            }
+          });
+        }
+        this.winf.setTitle('Файл голосовое');
+        var rec = this.getSelectionModel().getSelection()[0];
+        this.winf.setUrl('@Url.Action("FUEnregG")');
+        this.winf.setFileName('FileNameG');
+        this.winf.setActiveRecord(rec);
+        this.winf.show(this);
+      },
+
+      onClearFilterClick: function () {
+        this.filters.clearFilters();
       }
 
     });
@@ -1410,6 +1657,13 @@
           border: false,
           xtype: 'enreggrid',
           store: 'storeEnreg'
+        }, {
+          region: 'south',
+          split: true,
+          minHeight: 100,
+          itemId: 'steplog',
+          xtype: 'enregsteploggrid',
+          store: 'storeEnregStepLog'
         }]
       });
     });

@@ -52,6 +52,7 @@ namespace MO5.Models
         public Nullable<bool> FullOut { get; set; }
         public string UserName { get; set; }
         public int EnregTypeID { get; set; }
+        public string FileNameG { get; set; }
     
         public virtual tObjClassifier tObjClassifier { get; set; }
         public virtual tObjClassifier tObjClassifier1 { get; set; }

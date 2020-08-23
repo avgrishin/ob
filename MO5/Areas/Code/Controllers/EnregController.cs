@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Mail;
 using System.Web;
 using System.Web.Mvc;
@@ -29,13 +30,13 @@ namespace MO5.Areas.Code.Controllers
       EnregTypeID = _enregTypeID;
     }
 
-    [Authorize(Roles = "jrpk, jrpki")]
+    [Authorize(Roles = "jrpk, jrpki, jrpkr")]
     public ActionResult Index()
     {
       return View("~/Areas/Code/Views/enreg/Index.cshtml");
     }
 
-    [Authorize(Roles = "jrpk, jrpki")]
+    [Authorize(Roles = "jrpk, jrpki, jrpkr")]
     public ActionResult getEnregList(DateTime? d1, DateTime? d2, Boolean? sd, string sort, string dir)
     {
       return new JsonnResult { Data = new { success = true, data = enregRepository.GetEnregList(d1, d2, sd, User.Identity.Name, User.IsInRole("jrpkm"), EnregTypeID, sort, dir) } };
@@ -117,7 +118,11 @@ namespace MO5.Areas.Code.Controllers
     {
       return FileUpload(ID, fn, "D");
     }
-
+    [Authorize(Roles = "jrpk, jrpki")]
+    public ActionResult FUEnregG(int? ID, HttpPostedFileBase fn)
+    {
+      return FileUpload(ID, fn, "G");
+    }
     private ActionResult FileUpload(int? ID, HttpPostedFileBase fn, string sdir = "")
     {
       if (fn != null && fn.ContentLength > 0)
@@ -153,6 +158,17 @@ namespace MO5.Areas.Code.Controllers
       return getFile(data, "D");
     }
 
+    [Authorize]
+    public ActionResult GetFileG(int id)
+    {
+      var b = enregRepository.GetFileG(id, User.Identity.Name, User.IsInRole("controller"));
+      if (!b.IsAuth)
+      {
+        return File(new byte[] { }, "application/text", "NotAllowed.txt");
+        //return new HttpStatusCodeResult(HttpStatusCode.Unauthorized);
+      }
+      return getFile(b.FileName, "G");
+    }
     private ActionResult getFile(string data, string dir = "")
     {
       string mimeType = "application/octet-stream";
@@ -204,7 +220,12 @@ namespace MO5.Areas.Code.Controllers
     {
       return new JsonnResult { Data = new { success = true, data = enregRepository.GetUserTreaty(id) } };
     }
-
+    [Authorize(Roles = "jrpk, jrpki, jrpkr")]
+    public ActionResult getEnregStepLog(int id)
+    {
+      return new JsonnResult { Data = new { success = true, data = enregRepository.GetEnregStepLog(id) } };
+    }
+    
     [Authorize(Roles = "jrpk, jrpki")]
     public class UserTreaty
     {

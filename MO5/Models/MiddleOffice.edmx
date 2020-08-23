@@ -244,6 +244,7 @@
           <Property Name="ID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
           <Property Name="DocTypeID" Type="int" Nullable="false" />
           <Property Name="Step" Type="int" Nullable="false" />
+          <Property Name="Name" Type="varchar" MaxLength="50" />
           <Property Name="EmailTo" Type="varchar(max)" />
         </EntityType>
         <EntityType Name="tEnregistrement">
@@ -281,6 +282,7 @@
           <Property Name="FullOut" Type="bit" />
           <Property Name="UserName" Type="varchar" MaxLength="50" />
           <Property Name="EnregTypeID" Type="int" Nullable="false" />
+          <Property Name="FileNameG" Type="varchar" MaxLength="200" />
         </EntityType>
         <EntityType Name="tEnregistrementLog">
           <Key>
@@ -3869,6 +3871,7 @@
           <Property Name="FullOut" Type="Boolean" />
           <Property Name="UserName" Type="String" MaxLength="50" FixedLength="false" Unicode="false" />
           <Property Name="EnregTypeID" Type="Int32" Nullable="false" />
+          <Property Name="FileNameG" Type="String" MaxLength="200" FixedLength="false" Unicode="false" />
         </EntityType>
         <Association Name="FK_tEnregistrement_tObjClassifier">
           <End Type="MiddleOfficeModel.tObjClassifier" Role="tObjClassifier" Multiplicity="0..1" />
@@ -3903,6 +3906,7 @@
           <Property Name="Step" Type="Int32" Nullable="false" />
           <Property Name="EmailTo" Type="String" MaxLength="Max" FixedLength="false" Unicode="false" />
           <NavigationProperty Name="tObjClassifier" Relationship="MiddleOfficeModel.FK_tEnregDTSteps_tObjClassifier" FromRole="tEnregDTSteps" ToRole="tObjClassifier" />
+          <Property Name="Name" Type="String" MaxLength="50" FixedLength="false" Unicode="false" />
         </EntityType>
         <Association Name="FK_tEnregDTSteps_tObjClassifier">
           <End Type="MiddleOfficeModel.tObjClassifier" Role="tObjClassifier" Multiplicity="1" />
@@ -5144,6 +5148,7 @@
           <EntitySetMapping Name="tEnregistrement">
             <EntityTypeMapping TypeName="MiddleOfficeModel.tEnregistrement">
               <MappingFragment StoreEntitySet="tEnregistrement">
+                <ScalarProperty Name="FileNameG" ColumnName="FileNameG" />
                 <ScalarProperty Name="EnregTypeID" ColumnName="EnregTypeID" />
                 <ScalarProperty Name="UserName" ColumnName="UserName" />
                 <ScalarProperty Name="FullOut" ColumnName="FullOut" />
@@ -5181,6 +5186,7 @@
           <EntitySetMapping Name="tEnregDTSteps">
             <EntityTypeMapping TypeName="MiddleOfficeModel.tEnregDTSteps">
               <MappingFragment StoreEntitySet="tEnregDTSteps">
+                <ScalarProperty Name="Name" ColumnName="Name" />
                 <ScalarProperty Name="EmailTo" ColumnName="EmailTo" />
                 <ScalarProperty Name="Step" ColumnName="Step" />
                 <ScalarProperty Name="DocTypeID" ColumnName="DocTypeID" />

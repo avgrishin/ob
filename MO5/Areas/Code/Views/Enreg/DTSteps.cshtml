@@ -44,6 +44,7 @@
           { name: 'ID', type: 'int' },
           { name: 'DocTypeID', type: 'int' },
           { name: 'Step', type: 'int' },
+          { name: 'Name', type: 'string' },
           { name: 'EmailTo', type: 'string' },
           { name: 'EmailToName', type: 'string', persist: false }
         ],
@@ -122,42 +123,53 @@
             modal: true,
             buttonAlign: 'center',
             items: [{
-                xtype: 'form',
-                bodyPadding: 10,
-                items: [{
-                  xtype: 'numberfield',
-                  name: 'Step',
-                  minValue: 1,
-                  fieldLabel: 'Шаг'
-                }, {
-                  xtype: 'hidden',
-                  name: 'DocTypeID'
-                }, {
-                  itemId: 'EmailTo',
-                  name: 'EmailTo',
-                  xtype: 'hidden'
-                }]
+              xtype: 'form',
+              bodyPadding: 10,
+              layout: 'hbox',
+              fieldDefaults: {
+                labelAlign: 'top',
+                msgTarget: 'side'
+              },
+              items: [{
+                xtype: 'numberfield',
+                name: 'Step',
+                minValue: 1,
+                fieldLabel: 'Шаг'
               }, {
-                xtype: 'grid',
-                border: true,
-                itemId: 'gTo',
-                layout: 'fit',
-                height: 300,
-                title: 'Участники',
-                store: storeEMailTo,
-                columns: [{
-                  xtype: 'checkcolumn',
-                  dataIndex: 'ui',
-                  width: 30
-                }, {
-                  header: "Имя",
-                  dataIndex: 'name',
-                  width: 240
-                }, {
-                  header: "EMail",
-                  dataIndex: 'email',
-                  flex: 1
-                }]
+                xtype: 'textfield',
+                name: 'Name',
+                fieldLabel: 'Наименование',
+                flex: 1,
+                margin: '0 0 0 10'
+              }, {
+                xtype: 'hidden',
+                name: 'DocTypeID'
+              }, {
+                itemId: 'EmailTo',
+                name: 'EmailTo',
+                xtype: 'hidden'
+              }]
+            }, {
+              xtype: 'grid',
+              border: true,
+              itemId: 'gTo',
+              layout: 'fit',
+              height: 300,
+              title: 'Участники',
+              store: storeEMailTo,
+              columns: [{
+                xtype: 'checkcolumn',
+                dataIndex: 'ui',
+                width: 30
+              }, {
+                header: "Имя",
+                dataIndex: 'name',
+                width: 240
+              }, {
+                header: "EMail",
+                dataIndex: 'email',
+                flex: 1
+              }]
             }],
             dockedItems: [{
               xtype: 'toolbar',
@@ -319,7 +331,11 @@
             columns: [{
               dataIndex: 'Step',
               header: 'Шаг',
-              width: 120
+              width: 60
+            }, {
+              dataIndex: 'Name',
+              header: 'Наименование',
+              width: 240,
             }, {
               dataIndex: 'EmailToName',
               header: 'Участники',

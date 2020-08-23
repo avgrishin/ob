@@ -20,7 +20,7 @@ namespace MO5.Controllers
   {
     public ActionResult Index()
     {
-      string[] r = new string[] { "admin", "jrpk", "jrpki", "jrpkm", "decl", "envoi", "jur", "regdoc" };
+      string[] r = new string[] { "admin", "jrpk", "jrpki", "jrpkm", "decl", "envoi", "jur", "regdoc", "quik", "controller", "jrpkr" };
       foreach (var r1 in r)
       {
         if (!Roles.RoleExists(r1))

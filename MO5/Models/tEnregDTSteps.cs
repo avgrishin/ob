@@ -18,6 +18,7 @@ namespace MO5.Models
         public int DocTypeID { get; set; }
         public int Step { get; set; }
         public string EmailTo { get; set; }
+        public string Name { get; set; }
     
         public virtual tObjClassifier tObjClassifier { get; set; }
     }

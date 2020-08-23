@@ -46,6 +46,8 @@ namespace MO5.Areas.Code.Models
     bool enrCourriel(int id, string url, string host, int EnregTypeID);
     dynamic getEnreg(Guid id, int EnregTypeID);
     IEnumerable<dynamic> GetEnreLog(int id, int EnregID);
+    (bool IsAuth, string FileName) GetFileG(int id, string UserName, bool IsController);
+    IEnumerable<dynamic> GetEnregStepLog(int id);
   }
 
   public class NotExecEnreg
@@ -70,6 +72,8 @@ namespace MO5.Areas.Code.Models
     public IEnumerable<dynamic> GetEnregList(DateTime? d1, DateTime? d2, Boolean? sd, string UserName, bool? isOnlyMy, int EnregTypeID, string sort, string dir)
     {
       var q = (from e in db.tEnregistrement.Where(p => p.RecuDate >= d1 && p.RecuDate <= d2 && p.EnregTypeID == EnregTypeID)
+               join dts in db.tEnregDTSteps on new { e.DocTypeID, e.tEnregSteps.Step } equals new { DocTypeID = (int?)dts.DocTypeID, dts.Step } into _dts
+               from dts in _dts.DefaultIfEmpty()
                join tr in db.tTreaty on e.TreatyID equals tr.TreatyID into tr_
                from tr1 in tr_.DefaultIfEmpty()
                join f in db.tFinInst on tr1.FinInstID equals f.FinInstID into f_
@@ -106,12 +110,14 @@ namespace MO5.Areas.Code.Models
                  e.FileName,
                  e.FileNameO,
                  e.FileNameD,
+                 e.FileNameG,
                  e.Qty,
                  DateDog = e.DayDogTypeID == 1 ? UserDbFunction.ufAddWorkDate(e.RecuDate, e.DaysDog) : SqlFunctions.DateAdd("d", e.DaysDog, e.RecuDate),
                  e.DateFact,
                  //DateFact = UserDbFunction.ufAddWorkDate(e.RecuDate, e.DaysFact),
                  DayDogType = e.DayDogTypeID == 1 ? "рабочие" : "календарные",
                  Step = (int?)e.tEnregSteps.Step,
+                 StepName = dts.Name,
                  IsStepConfirmed = (bool?)e.tEnregSteps.IsConfirmed,
                  e.UserName
                });
@@ -136,6 +142,8 @@ namespace MO5.Areas.Code.Models
 
       var ids = data.Select(p => p.ID);
       var q = from e in db.tEnregistrement.AsNoTracking().Where(p => ids.Contains(p.ID))
+              join dts in db.tEnregDTSteps on new { e.DocTypeID, e.tEnregSteps.Step } equals new { DocTypeID = (int?)dts.DocTypeID, dts.Step } into _dts
+              from dts in _dts.DefaultIfEmpty()
               join tr in db.tTreaty on e.TreatyID equals tr.TreatyID into tr_
               from tr1 in tr_.DefaultIfEmpty()
               join f in db.tFinInst on tr1.FinInstID equals f.FinInstID into f_
@@ -172,6 +180,7 @@ namespace MO5.Areas.Code.Models
                 e.FileName,
                 e.FileNameO,
                 e.FileNameD,
+                e.FileNameG,
                 e.Qty,
                 DateDog = e.DayDogTypeID == 1 ? UserDbFunction.ufAddWorkDate(e.RecuDate, e.DaysDog) : SqlFunctions.DateAdd("d", e.DaysDog, e.RecuDate),
                 e.DateFact,
@@ -203,6 +212,7 @@ namespace MO5.Areas.Code.Models
               q1.FileName = e.FileName;
               q1.FileNameO = e.FileNameO;
               q1.FileNameD = e.FileNameD;
+              q1.FileNameG = e.FileNameG;
               q1.InDateTime = DateTime.Now;
               q1.Numero = e.Numero;
               q1.Original = e.Original;
@@ -262,6 +272,7 @@ namespace MO5.Areas.Code.Models
                 e.FileName,
                 e.FileNameO,
                 e.FileNameD,
+                e.FileNameG,
                 e.Qty,
                 DateDog = e.DayDogTypeID == 1 ? UserDbFunction.ufAddWorkDate(e.RecuDate, e.DaysDog) : SqlFunctions.DateAdd("d", e.DaysDog, e.RecuDate),
                 e.DateFact,
@@ -473,6 +484,7 @@ namespace MO5.Areas.Code.Models
                 dt.ID,
                 dt.DocTypeID,
                 dt.Step,
+                dt.Name,
                 dt.EmailTo,
                 EmailToName = UserDbFunction.ufEmailToStr(dt.EmailTo)
               };
@@ -491,6 +503,7 @@ namespace MO5.Areas.Code.Models
                 dt.ID,
                 dt.DocTypeID,
                 dt.Step,
+                dt.Name,
                 dt.EmailTo,
                 EmailToName = UserDbFunction.ufEmailToStr(dt.EmailTo)
               };
@@ -506,6 +519,7 @@ namespace MO5.Areas.Code.Models
         {
           q1.EmailTo = e.EmailTo;
           q1.Step = e.Step;
+          q1.Name = e.Name;
           db.SaveChanges();
         }
       }
@@ -516,6 +530,7 @@ namespace MO5.Areas.Code.Models
                 dt.ID,
                 dt.DocTypeID,
                 dt.Step,
+                dt.Name,
                 dt.EmailTo,
                 EmailToName = UserDbFunction.ufEmailToStr(dt.EmailTo)
               };
@@ -708,6 +723,31 @@ namespace MO5.Areas.Code.Models
       return q;
     }
 
+    public IEnumerable<dynamic> GetEnregStepLog(int id)
+    {
+      var e = db.tEnregistrement.Find(id);
+      var q = from dts in db.tEnregDTSteps
+              where dts.DocTypeID == e.DocTypeID
+              join es in db.tEnregSteps.Where(p => p.EnregID == id) on dts.Step equals es.Step into _es
+              from es in _es.DefaultIfEmpty()
+              join u in db.aspnet_Users on es.UserName equals u.UserName into _u
+              from u in _u.DefaultIfEmpty()
+              join m in db.aspnet_Membership on new { u.UserId, u.ApplicationId } equals new { m.UserId, m.ApplicationId } into _m
+              from m in _m.DefaultIfEmpty() 
+              orderby dts.Step
+              select new
+              {
+                dts.ID,
+                dts.Step,
+                dts.Name,
+                dts.EmailTo,
+                IsConfirmed = (bool?)es.IsConfirmed,
+                es.InDateTime,
+                es.InDateTimeC,
+                UserName = m.Email ?? es.UserName
+              };
+      return q;
+    }
     public IEnumerable<dynamic> GetEnreLog(int id, int EnregTypeID)
     {
       var q = from el in db.tEnregistrementLog
@@ -742,6 +782,15 @@ namespace MO5.Areas.Code.Models
       return q;
     }
 
+    public (bool IsAuth, string FileName) GetFileG(int id, string UserName, bool IsController)
+    {
+      var e = db.tEnregistrement.Find(id);
+      if (e?.UserName == UserName || IsController)
+      {
+        return (true, e?.FileNameG);
+      }
+      else return (false, "");
+    }
   }
 
   public class UserList
