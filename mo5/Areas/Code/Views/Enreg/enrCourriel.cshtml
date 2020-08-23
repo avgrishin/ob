@@ -1,0 +1,106 @@
+﻿@model MO5.Areas.Code.Models.EMailEnr
+@{
+  Layout = null;
+  var q2 = ViewBag.q;
+}
+<style>
+  table {
+    border-collapse: collapse;
+    border: 1px solid gray;
+  }
+
+  td, span, th {
+    font-size: .8em;
+    font-family: "Segoe UI", Verdana, Helvetica, Sans-Serif;
+    text-align: left;
+  }
+
+  span {
+    font-style: italic;
+  }
+
+  th {
+    font-size: .7em;
+  }
+</style>
+<span>
+  Уважаемый коллега,<br>
+  @if (ViewBag.descr != "")
+  {
+    <text><b>Вам отказано в исполнении поручения</b></text><br />
+  }
+  @if (ViewBag.t == MO5.Areas.Code.Models.numDep.IsAll)
+  {
+    @q2.str
+  }
+  else
+  {
+    <text>просим @q2.str клиента по <a href='http://@(ViewBag.host)/code/enreg/confirmEnrDet?id=@Model.id&t=@((int)ViewBag.t)&a=@q2.NameTo'>ссылке</a></text>
+  }
+</span>
+<table>
+  <tr>
+    <th>Клиент</th>
+    <td>@Model.ClientName</td>
+  </tr>
+  <tr>
+    <th>№ Договора</th>
+    <td>@Model.trName</td>
+  </tr>
+  <tr>
+    <th>Документ</th>
+    <td>@Model.DTName</td>
+  </tr>
+  <tr>
+    <th>Оригинал</th>
+    <td>@(Model.Original ?? false ? "Да" : "Нет")</td>
+  </tr>
+  <tr>
+    <th>Клиентский</th>
+    <td>@Model.ClnManager</td>
+  </tr>
+  <tr>
+    <th>Управляющий</th>
+    <td>@Model.StrategyUser</td>
+  </tr>
+  <tr>
+    <th colspan="2">Сроки исполнения (Дата исполнения)</th>
+  </tr>
+  <tr>
+    <th>По договору</th>
+    <td>@Model.DaysDog дн. @(Model.RecuDate == null ? "" : Model.RecuDate.Value.ToString("dd.MM.yy"))</td>
+  </tr>
+  @*<tr>
+    <th>По документу</th>
+    <td>@Model.DaysDoc дн. @(Model.DateDoc == null ? "" : Model.DateDoc.Value.ToString("dd.MM.yy"))</td>
+  </tr>*@
+  <tr>
+    <th>Сумма</th>
+    <td>@(Model.Qty == null ? "" : string.Format("{0:N2}", Model.Qty))</td>
+  </tr>
+  <tr>
+    <th>Примечание</th>
+    <td>@Model.Remarque&nbsp;</td>
+  </tr>
+  @if (ViewBag.descr != "")
+  {
+    <tr>
+      <th>ОТКАЗ</th>
+      <td>@ViewBag.descr&nbsp;</td>
+    </tr>
+  }
+  @if (!String.IsNullOrWhiteSpace(Model.FileName))
+  {
+    <tr>
+      <th>Файл</th>
+      <td>@(string.Format("<a href='http://{1}/code/enreg/getfile?data={2}'>{0}</a>", Model.FileName, ViewBag.host, System.Web.HttpUtility.UrlEncode(Model.FileName)))</td>
+    </tr>
+  }
+</table>
+<br>
+@if (ViewBag.t != 0)
+{
+  <span><a href='http://@(ViewBag.host)/code/enreg/refusalEnrDet?id=@(ViewBag.id)&t=@((int)ViewBag.t)&a=@q2.NameTo'>в случае невозможности исполнения распоряжения просьба перейти по ссылке отказа и объяснить причину ОТКАЗа</a></span>
+  <br />
+}
+<span>Подпись: Мидл-офис</span>

@@ -1,0 +1,475 @@
+﻿@{
+  ViewBag.Title = "ЖРПК Участники";
+  Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section scripts {
+  <style type="text/css">
+    .icon-refresh
+    {
+      background-image: url(@Url.Content("~/Scripts/ExtJS62/build/classic/theme-crisp/resources/images/grid/refresh.png")) !important;
+    }
+  </style>
+  <link rel="stylesheet" type="text/css" href="~/Scripts/ExtJS62/build/classic/theme-crisp/resources/theme-crisp-all.css" />
+  <script type="text/javascript" src="~/Scripts/ExtJS62/ext-bootstrap.js"></script>
+
+  <script type="text/javascript" src="~/Scripts/ExtJS62/build/classic/locale/locale-ru.js"></script>
+  <script type="text/javascript" src="~/Scripts/ExtJS62/ux/Exporter.js"></script>
+
+  <script type="text/javascript">
+
+    Ext.onReady(function () {
+      Ext.tip.QuickTipManager.init();
+
+      Ext.create('Ext.data.Store', {
+        storeId: 'storeDocType',
+        autoLoad: true,
+        idProperty: 'Value',
+        fields: ['Value', 'Text'],
+        proxy: {
+          type: 'ajax',
+          url: '@Url.Action("getObjClsByParent")' + '/1969',
+          actionMethods: { read: 'POST' },
+          reader: {
+            type: 'json',
+            rootProperty: 'data'
+          }
+        }
+      });
+
+      Ext.define('DTSteps', {
+        extend: 'Ext.data.Model',
+        idProperty: 'ID',
+        fields: [
+          { name: 'ID', type: 'int' },
+          { name: 'DocTypeID', type: 'int' },
+          { name: 'Step', type: 'int' },
+          { name: 'Name', type: 'string' },
+          { name: 'EmailTo', type: 'string' },
+          { name: 'EmailToName', type: 'string', persist: false }
+        ],
+        autoLoad: false,
+        proxy: {
+          type: 'ajax',
+          actionMethods: { read: 'POST' },
+          api: {
+            read: '@Url.Action("getDTSteps")',
+            create: '@Url.Action("addDTSteps")',
+            update: '@Url.Action("updDTSteps")',
+            destroy: '@Url.Action("delDTSteps")'
+          },
+          reader: {
+            type: 'json',
+            rootProperty: 'data'
+          },
+          writer: {
+            type: 'json',
+            rootProperty: 'data',
+            writeAllFields: true,
+            allowSingle: false,
+            encode: false
+          },
+          simpleSortMode: true
+        }
+      });
+
+      Ext.create('Ext.data.Store', {
+        storeId: 'storeDTSteps',
+        model: 'DTSteps'
+      });
+
+      Ext.define('EMail', {
+        extend: 'Ext.data.Model',
+        idProperty: 'id',
+        fields: ['id', 'name', 'email']
+      });
+
+      var storeEMail = Ext.create('Ext.data.Store', {
+        remoteSort: true,
+        model: 'EMail',
+        autoLoad: true,
+        proxy: {
+          actionMethods: { read: 'POST' },
+          type: 'ajax',
+          api: {
+            read: '@Url.Action("getEMailList")'
+          },
+          reader: {
+            type: 'json',
+            rootProperty: 'data'
+          },
+          simpleSortMode: true
+        }
+      });
+
+      Ext.define('EMailList', {
+        extend: 'Ext.data.Model',
+        idProperty: 'id',
+        fields: ['id', 'name', 'email', { name: 'ui', type: 'bool' }]
+      });
+
+      var storeEMailTo = Ext.create('Ext.data.Store', {
+        model: 'EMailList'
+      });
+
+      Ext.define('DTStep.Win', {
+        extend: 'Ext.window.Window',
+        alias: 'widget.dtstepwin',
+
+        initComponent: function () {
+          Ext.apply(this, {
+            width: 600,
+            closeAction: 'hide',
+            modal: true,
+            buttonAlign: 'center',
+            items: [{
+              xtype: 'form',
+              bodyPadding: 10,
+              layout: 'hbox',
+              fieldDefaults: {
+                labelAlign: 'top',
+                msgTarget: 'side'
+              },
+              items: [{
+                xtype: 'numberfield',
+                name: 'Step',
+                minValue: 1,
+                fieldLabel: 'Шаг'
+              }, {
+                xtype: 'textfield',
+                name: 'Name',
+                fieldLabel: 'Наименование',
+                flex: 1,
+                margin: '0 0 0 10'
+              }, {
+                xtype: 'hidden',
+                name: 'DocTypeID'
+              }, {
+                itemId: 'EmailTo',
+                name: 'EmailTo',
+                xtype: 'hidden'
+              }]
+            }, {
+              xtype: 'grid',
+              border: true,
+              itemId: 'gTo',
+              layout: 'fit',
+              height: 300,
+              title: 'Участники',
+              store: storeEMailTo,
+              columns: [{
+                xtype: 'checkcolumn',
+                dataIndex: 'ui',
+                width: 30
+              }, {
+                header: "Имя",
+                dataIndex: 'name',
+                width: 240
+              }, {
+                header: "EMail",
+                dataIndex: 'email',
+                flex: 1
+              }]
+            }],
+            dockedItems: [{
+              xtype: 'toolbar',
+              dock: 'bottom',
+              ui: 'footer',
+              items: ['->', {
+                iconCls: 'icon-save',
+                itemId: 'save',
+                text: 'Сохранить',
+                disabled: true,
+                scope: this,
+                handler: this.onSave
+              }, {
+                  text: 'Отмена',
+                  scope: this,
+                  handler: this.onCancel
+                }]
+            }]
+          });
+          this.callParent();
+        },
+
+        setActiveRecord: function (record) {
+          this.activeRecord = record;
+          if (record) {
+            this.down('#save').enable();
+            this.down('form').getForm().loadRecord(record);
+          } else {
+            this.down('#save').disable();
+            this.down('form').getForm().reset();
+          }
+          var re = /\s*,\s*/
+          var to = (record.data.EmailTo === null ? '' : record.data.EmailTo).split(re);
+          storeEMailTo.removeAll();
+          storeEMail.each(function (r, i) {
+            storeEMailTo.add({ id: r.data.id, name: r.data.name, email: r.data.email, ui: Ext.Array.contains(to, r.data.email) });
+          });
+          this.down('#gTo').reconfigure(storeEMailTo);
+},
+
+        onSave: function () {
+          var active = this.activeRecord, form = this.down('form').getForm();
+          if (!active) {
+            return;
+          }
+          var s = '', f = true;
+          storeEMailTo.each(function (r, i) {
+            if (r.data.ui) {
+              s += (!f ? ', ' : '') + r.data.email;
+              if (f) f = false;
+            }
+          });
+          this.down('#EmailTo').setValue(s);
+          if (form.isValid()) {
+            if (this.title == 'Добавить')
+              this.fireEvent('create', this, form.getValues(false, false, false, true));
+            else {
+              form.updateRecord(active);
+              this.fireEvent('update');
+            }
+            this.hide();
+          }
+        },
+
+        onCancel: function () {
+          this.hide();
+        }
+      });
+
+      Ext.define('DocTypeGrid.Grid', {
+        extend: 'Ext.grid.Panel',
+        alias: 'widget.doctypegrid',
+        initComponent: function () {
+          Ext.apply(this, {
+            columns: [{
+              dataIndex: 'Text',
+              header: 'Тип документа',
+              flex: 1
+            }],
+            dockedItems: [{
+              xtype: 'toolbar',
+              dock: 'top',
+              items: [{
+                iconCls: 'icon-refresh',
+                text: 'Обновить',
+                handler: this.onRefreshClick,
+                scope: this
+              }]
+            }],
+            viewConfig: {
+              enableTextSelection: true,
+              listeners: {
+                scope: this,
+                selectionchange: {
+                  fn: this.onSelectChange
+                }
+              }
+            }
+          });
+          this.callParent();
+        },
+
+        onRefreshClick: function () {
+          this.store.load();
+        },
+
+        onSelectChange: function (selModel, selections) {
+          var grid = this.up('viewport').down('#DTSteps');
+          if (grid) {
+            grid.down('#add').setDisabled(selections.length === 0);
+            grid.down('#refresh').setDisabled(selections.length === 0);
+            if (selections.length !== 0) {
+              grid.store.proxy.extraParams = { ID: selections[0].get('Value') };
+              grid.store.load();
+              grid.down('#add').setDisabled(false);
+              grid.down('#refresh').setDisabled(false);
+            }
+          }
+        },
+
+        onDblClick: function (view, record, item, index, e) {
+          var tabs = this.up('tabpanel')
+          var tab = tabs.down('#tcTreaty')
+          var grid = tab.down('treatygrid')
+          grid.setTitle(record.get('Name'));
+          grid.store.proxy.extraParams = { PortfolioID: record.get('PortfolioID') };
+          grid.store.load();
+
+          tab.tab.show();
+          tabs.setActiveTab(tab);
+          return false;
+        },
+
+        onDeleteClick: function () {
+          var me = this;
+          var selection = this.getView().getSelectionModel().getSelection()[0];
+          if (selection) {
+            if (window.confirm('Удалить стр.?')) {
+              selection.dropped = true;
+              selection.save({
+                success: function () {
+                  me.store.remove(selection);
+                },
+                failure: function () {
+                  selection.dropped = false;
+                  Ext.Msg.alert('Error', 'Запись не удалена.');
+                }
+              });
+            }
+          }
+        }
+      });
+
+      Ext.define('DTSteps.Grid', {
+        extend: 'Ext.grid.Panel',
+        alias: 'widget.dtstepsgrid',
+        initComponent: function () {
+          Ext.apply(this, {
+            columns: [{
+              dataIndex: 'Step',
+              header: 'Шаг',
+              width: 60
+            }, {
+              dataIndex: 'Name',
+              header: 'Наименование',
+              width: 240,
+            }, {
+              dataIndex: 'EmailToName',
+              header: 'Участники',
+              flex: 1
+            }, {
+              dataIndex: 'ID',
+              header: 'ID',
+              hidden: true,
+              width: 30
+            }],
+            dockedItems: [{
+              xtype: 'toolbar',
+              dock: 'top',
+              items: [{
+                iconCls: 'icon-refresh',
+                text: 'Обновить',
+                itemId: 'refresh',
+                handler: this.onRefreshClick,
+                disabled: true,
+                scope: this
+              }, {
+                text: 'Добавить',
+                  itemId: 'add',
+                handler: this.onAddClick,
+                  disabled: true,
+                scope: this
+              }, {
+                text: 'Изменить',
+                disabled: true,
+                itemId: 'change',
+                handler: this.onChangeClick,
+                scope: this
+              }, {
+                iconCls: 'icon-delete',
+                text: 'Удалить',
+                disabled: true,
+                itemId: 'delete',
+                scope: this,
+                handler: this.onDeleteClick
+              }]
+            }],
+            viewConfig: {
+              enableTextSelection: true,
+              listeners: {
+                scope: this,
+                itemclick: {
+                  fn: this.onSelectChange
+                }
+              }
+            }
+          });
+          this.callParent();
+        },
+
+        onRefreshClick: function () {
+          this.store.load();
+        },
+
+        onSelectChange: function (selModel, selections) {
+          this.down('#delete').setDisabled(selections.length === 0);
+          this.down('#change').setDisabled(selections.length === 0);
+        },
+
+        onAddClick: function () {
+          var rec = Ext.create('DTSteps', { DocTypeID: this.store.proxy.extraParams.ID });
+          var wini = this.onCreateWin();
+          wini.setTitle('Добавить');
+          wini.setActiveRecord(rec);
+          wini.show(this);
+        },
+
+        onChangeClick: function () {
+          var wini = this.onCreateWin();
+          wini.setTitle('Изменить');
+          wini.setActiveRecord(this.getSelectionModel().getSelection()[0]);
+          wini.show(this);
+        },
+
+        onCreateWin: function () {
+          return Ext.create('DTStep.Win', {
+            scope: this,
+            listeners: {
+              scope: this,
+              create: function (form, data) {
+                this.store.insert(0, data);
+                this.store.sync();
+              },
+              update: function () {
+                this.store.sync();
+              }
+            }
+          });
+        },
+
+        onDeleteClick: function () {
+          var me = this;
+          var selection = this.getView().getSelectionModel().getSelection()[0];
+          if (selection) {
+            if (window.confirm('Удалить стр.?')) {
+              selection.dropped = true;
+              selection.save({
+                success: function () {
+                  me.store.remove(selection);
+                },
+                failure: function () {
+                  selection.dropped = false;
+                  alert('Запись не удалена');
+                }
+              });
+            }
+          }
+        }
+      });
+
+      Ext.create('Ext.Viewport', {
+        layout: 'border',
+        items: [{
+          region: 'north',
+          border: false,
+          contentEl: 'header'
+        }, {
+          region: 'center',
+          xtype: 'doctypegrid',
+          store: 'storeDocType'
+        }, {
+          region: 'south',
+          height: '50%',
+          itemId: 'DTSteps',
+          xtype: 'dtstepsgrid',
+          store: 'storeDTSteps',
+          split: true,
+          border: false
+        }]
+      });
+    });
+  </script>
+}

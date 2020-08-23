@@ -1,0 +1,1671 @@
+﻿@{
+  ViewBag.Title = "ЖРПК";
+  Layout = "~/Views/Shared/_Layout.cshtml";
+}
+@section scripts {
+  <style type="text/css">
+    .icon-user-add
+    {
+      background-image: url(@Href("~/Content/images/user_add.png")) !important;
+    }
+    .icon-save
+    {
+      background-image: url(@Href("~/Content/images/save.gif")) !important;
+    }
+    .icon-add
+    {
+      background-image: url(@Href("~/Content/images/add.png")) !important;
+    }
+    .icon-setting
+    {
+      background-image: url(@Href("~/Scripts/ExtJS62/build/classic/theme-gray/resources/images/tools/tool-sprites.gif")) !important;
+      background-position: 0 -90px !important;
+    }
+    .icon-delete
+    {
+      background-image: url(@Href("~/Content/images/delete.png")) !important;
+    }
+    .icon-refresh
+    {
+      background-image: url(@Href("~/Scripts/ExtJS62/build/classic/theme-gray/resources/images/grid/refresh.gif")) !important;
+    }
+    .icon-confirm
+    {
+      background-image: url(@Href("~/Content/images/page-next.gif")) !important;
+    }
+    td.wrap-text div {
+      white-space: normal;
+    }
+    .gray-row .x-grid-cell {
+      /*text-decoration: line-through;*/
+      color: gray;
+  }
+    .upload-icon {
+      background-image: url(@Href("~/Content/images/image_add.png"));
+    }
+    .search-item
+    {
+      font: normal 11px tahoma, arial, helvetica, sans-serif;
+      padding: 2px 5px 2px 5px;
+      /*border: 1px solid #fff;*/
+      border-bottom: 1px solid #eeeeee;
+      white-space: normal;
+      color: #555;
+    }
+    .search-item div
+    {
+      display: block;
+      font: inherit;
+      font-weight: bold;
+      color: #222;
+    }
+  </style>
+  <link rel="stylesheet" type="text/css" href="~/Scripts/ExtJS62/build/classic/theme-gray/resources/theme-gray-all.css" />
+  <script type="text/javascript" src="~/Scripts/ExtJS62/ext-bootstrap.js"></script>
+  <script type="text/javascript" src="~/Scripts/ExtJS62/build/classic/locale/locale-ru.js"></script>
+  <script type="text/javascript" src="~/Scripts/ExtJS62/ux/Exporter.js"></script>
+
+  <script type="text/javascript">
+
+    Ext.apply(Ext.form.VTypes, {
+      daterange: function (val, field) {
+        var date = field.parseDate(val);
+        if (!date) {
+          return false;
+        }
+        if (field.startDateField) {
+          var start = field.ownerCt.getComponent(field.startDateField);
+          if (!start.maxValue || date.getTime() !== start.maxValue.getTime()) {
+            start.setMaxValue(date);
+            start.validate();
+          }
+        }
+        else if (field.endDateField) {
+          var end = field.ownerCt.getComponent(field.endDateField);
+          if (!end.minValue || date.getTime() !== end.minValue.getTime()) {
+            end.setMinValue(date);
+            end.validate();
+          }
+        }
+        /*
+        * Always return true since we're only using this vtype to set the
+        * min/max allowed values (these are tested for after the vtype test)
+        */
+        return true;
+      }
+    });
+
+    Ext.define('Ext.ux.CustomNumber', {
+      extend: 'Ext.form.field.Number',
+      alias: 'widget.customnumber',
+
+      rawToValue: function (rawValue) {
+        var value = this.fixPrecision(this.parseValue(rawValue));
+        if (value === null) {
+          value = rawValue || null;
+        }
+        return value + '';
+      }
+    });
+
+    Ext.util.Format.renderFileEnreg = function (value) {
+      return Ext.String.format('<a href="@Url.Action("GetFile")?data={1}" target="_blank">{0}</a>', value, encodeURIComponent(value));
+    };
+
+    //Ext.apply(Ext.util.Format, {
+    //  thousandSeparator: ' ',
+    //  decimalSeparator: '.'
+    //});
+
+    Ext.define('Enreg', {
+      extend: 'Ext.data.Model',
+      idProperty: 'id',
+      fields: [
+        'id',
+        { name: 'Numero', type: 'string' },
+        { name: 'DocNum', type: 'string' },
+        { name: 'TreatyID' },
+        { name: 'trNameBrief', type: 'string', perist: false },
+        { name: 'ClnName', type: 'string', perist: false },
+        { name: 'RecuDate', type: 'date', dateFormat: 'c' },
+        { name: 'Tm', type: 'date', dateFormat: 'c' },
+        { name: 'Original', type: 'bool' },
+        { name: 'ScanCopy', type: 'bool' },
+        { name: 'FullOut', type: 'bool', allowNull: true },
+        { name: 'IsShowFO', type: 'bool' },
+        { name: 'DocTypeID', type: 'int' },
+        { name: 'DTName', type: 'string', persist: false },
+        { name: 'EmployeID', type: 'int' },
+        { name: 'EmployeNom', type: 'string', persist: false },
+        { name: 'Remarque', type: 'string' },
+        { name: 'IsDone', type: 'bool' },
+        { name: 'DateDog', type: 'date', dateFormat: 'c', persist: false },
+        { name: 'DateFact', type: 'date', dateFormat: 'c', allowNull: true },
+        { name: 'DayDogTypeID', type: 'int' },
+        { name: 'DayDogType', type: 'string', persist: false },
+        { name: 'DaysDog', type: 'int' },
+        { name: 'DaysFact', type: 'int', allowNull: true },
+        { name: 'FileName', type: 'string' },
+        { name: 'FileNameO', type: 'string' },
+        { name: 'FileNameD', type: 'string' },
+        { name: 'FileNameG', type: 'string' },
+        { name: 'MethodID', type: 'int' },
+        { name: 'Method', type: 'string', persist: false },
+        { name: 'StatusID', type: 'int' },
+        { name: 'Status', type: 'string', persist: false },
+        { name: 'Qty', type: 'number' },
+        { name: 'Step', type: 'int', allowNull: true },
+        { name: 'StepName', type: 'string', persist: false},
+        { name: 'IsStepConfirmed', type: 'bool' }
+      ]
+    });
+
+    Ext.create('Ext.data.Store', {
+      storeId: 'storeEnreg',
+      model: 'Enreg',
+      pageSize: 500,
+      remoteSort: true,
+      autoSync: false,
+      autoLoad: false,
+      proxy: {
+        type: 'ajax',
+        api: {
+          read: '@Url.Action("getEnregList")',
+          create: '@Url.Action("addEnreg")',
+          update: '@Url.Action("updEnreg")',
+          destroy: '@Url.Action("delEnreg")'
+        },
+        actionMethods: { read: 'POST' },
+        reader: {
+          type: 'json',
+          rootProperty: 'data',
+          totalProperty: 'totalCount'
+        },
+        writer: {
+          type: 'json',
+          rootProperty: 'data',
+          writeAllFields: true,
+          allowSingle: false,
+          encode: false
+        },
+        simpleSortMode: true,
+        listeners: {
+          exception: function (proxy, response, operation) {
+            Ext.MessageBox.show({
+              title: 'REMOTE EXCEPTION',
+              msg: operation.getError().statusText,
+              icon: Ext.MessageBox.ERROR,
+              buttons: Ext.Msg.OK
+            });
+          }
+        }
+      }
+    });
+
+    Ext.define('EnregLog', {
+      extend: 'Ext.data.Model',
+      remoteSort: true,
+      idProperty: 'id',
+      fields: ['id', 'Step', 'Login', { name: 'InDateTime', type: 'date', dateFormat: 'c' }],
+      autoLoad: false,
+      autoSync: false,
+      proxy: {
+        type: 'ajax',
+        url: '@Url.Action("getEnreLogList")',
+        actionMethods: { read: 'POST' },
+        reader: {
+          type: 'json',
+          rootProperty: 'data',
+        },
+        simpleSortMode: true
+      }
+    });
+
+    Ext.create('Ext.data.Store', {
+      storeId: 'storeEnregLog',
+      model: 'EnregLog'
+    });
+
+    Ext.define('EnregStepLog', {
+      extend: 'Ext.data.Model',
+      remoteSort: true,
+      idProperty: 'id',
+      fields: ['id', 'Step', 'Name', 'EmailTo', 'IsConfirmed', { name: 'InDateTime', type: 'date', dateFormat: 'c' }, { name: 'InDateTimeC', type: 'date', dateFormat: 'c' }, 'UserName' ],
+      autoLoad: false,
+      autoSync: false,
+      proxy: {
+        type: 'ajax',
+        url: '@Url.Action("getEnregStepLog")',
+        actionMethods: { read: 'POST' },
+        reader: {
+          type: 'json',
+          rootProperty: 'data',
+        },
+        simpleSortMode: true
+      }
+    });
+
+    Ext.create('Ext.data.Store', {
+      storeId: 'storeEnregStepLog',
+      model: 'EnregStepLog'
+    });
+
+    Ext.define('EnregLog.Win', {
+      extend: 'Ext.window.Window',
+      alias: 'widget.enreglog',
+
+      initComponent: function () {
+        Ext.apply(this, {
+          width: 500,
+          height: 500,
+          closeAction: 'hide',
+          layout: 'fit',
+          modal: true,
+          buttonAlign: 'center',
+          items: [{
+            xtype: 'grid',
+            store: 'storeEnregLog',
+            columns: [{
+              header: 'Шаг',
+              dataIndex: 'Step',
+              width: 50
+            }, {
+              header: 'Дата время',
+              dataIndex: 'InDateTime',
+              width: 130,
+              xtype: 'datecolumn',
+              format: 'd.m.Y H:i:s'
+            }, {
+              header: 'Login',
+              dataIndex: 'Login',
+              flex: 1
+            }],
+            viewConfig: {
+              enableTextSelection: true,
+              preserveScrollOnRefresh: true,
+              trackOver: true
+            }
+          }],
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'bottom',
+            ui: 'footer',
+            items: ['->', {
+              text: 'Выход',
+              scope: this,
+              handler: this.onExit
+            }]
+          }]
+        });
+        this.callParent();
+      },
+
+      onExit: function () {
+        this.hide();
+      }
+    });
+
+    Ext.define('Enreg.Win', {
+      extend: 'Ext.window.Window',
+      alias: 'widget.enregwin',
+
+      initComponent: function () {
+        Ext.apply(this, {
+          width: 600,
+          closeAction: 'hide',
+          modal: true,
+          buttonAlign: 'center',
+          items: [{
+            xtype: 'form',
+            border: false,
+            bodyPadding: 10,
+            defaults: { anchor: '100%' },
+            fieldDefaults: {
+              labelAlign: 'top',
+              msgTarget: 'side'
+            },
+            items: [{
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              items: [{
+                xtype: 'textfield',
+                labelAlign: 'left',
+                labelWidth: 105,
+                width: 300,
+                name: 'Numero',
+                fieldLabel: 'Номер поручения',
+                enforceMaxLength: true,
+                maxLength: 20
+              }]
+            }, {
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              margin: '10 0 10 0',
+              items: [{
+                name: 'trNameBrief',
+                labelAlign: 'left',
+                fieldLabel: 'Договор',
+                labelWidth: 105,
+                xtype: 'textfield',
+                readOnly: true,
+                allowBlank: false,
+                flex: 1
+              }, {
+                xtype: 'button',
+                text: 'Выбрать',
+                scope: this,
+                handler: this.onShowTreaty
+              }]
+            }, {
+              xtype: 'hidden',
+              name: 'TreatyID'
+            }, @*{
+              xtype: 'combo',
+              store: Ext.create('Ext.data.Store', {
+                idProperty: 'id',
+                fields: ['id', 'name', 'brief'],
+                proxy: {
+                  type: 'ajax',
+                  url: '@Url.Action("getTreaties")',
+                  actionMethods: { read: 'POST' },
+                  reader: {
+                    type: 'json',
+                    rootProperty: 'data'
+                  }
+                }
+              }),
+              valueField: 'id',
+              name: 'TreatyID',
+              displayField: 'brief',
+              typeAhead: false,
+              queryDelay: 1000,
+              hideTrigger: true,
+              forceSelection: true,
+              fieldLabel: 'Договор',
+              minChars: 2,
+              listConfig: {
+                getInnerTpl: function () {
+                  return '<div class="search-item"><div>{brief}</div>{name}</div>';
+                }
+              },
+              itemSelector: 'div.search-item',
+              allowBlank: false
+            },*@ {
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              margin: '10 0 10 0',
+              items: [{
+                xtype: 'datefield',
+                labelAlign: 'left',
+                labelWidth: 105,
+                format: 'd.m.Y',
+                width: 208,
+                name: 'RecuDate',
+                allowBlank: false,
+                fieldLabel: 'Дата получения',
+                startDay: 1
+              }, {
+                name: 'Tm',
+                fieldLabel: 'Время',
+                labelAlign: 'right',
+                xtype: 'timefield',
+                labelWidth: 45,
+                width: 140,
+                format: 'H:i',
+                initDate: '1/1/2012',
+                increment: 10,
+                margin: '0 0 0 10'
+              }]
+            }, {
+              xtype: 'combo',
+              name: 'DocTypeID',
+              store: Ext.create('Ext.data.Store', {
+                autoLoad: true,
+                idProperty: 'Value',
+                fields: ['Value', 'Text', 'RequiredFlag'],
+                proxy: {
+                  type: 'ajax',
+                  url: '@Url.Action("getDocType")' + '/1969',
+                  actionMethods: { read: 'POST' },
+                  reader: {
+                    type: 'json',
+                    rootProperty: 'data'
+                  }
+                }
+              }),
+              fieldLabel: 'Тип документа',
+              displayField: 'Text',
+              valueField: 'Value',
+              typeAhead: true,
+              queryMode: 'local',
+              emptyText: '*',
+              //forceSelection: true,
+              //triggerAction: 'all',
+              selectOnFocus: true,
+              listeners: {
+                'select': function (combo, record) {
+                  combo.up('form').getForm().findField('FullOut').setDisabled(record.get('RequiredFlag') !== 1);
+                }
+              }
+            }, {
+              xtype: 'fieldcontainer',
+              title: 'Вид документа',
+              layout: 'hbox',
+              items: [{
+                name: 'Original',
+                fieldLabel: 'Оригинал',
+                labelAlign: 'left',
+                xtype: 'checkboxfield',
+                labelWidth: 60
+              }, {
+                name: 'ScanCopy',
+                fieldLabel: 'Скан-копия',
+                labelAlign: 'right',
+                xtype: 'checkboxfield',
+                labelWidth: 70,
+                margin: '0 0 0 10',
+              }, {
+                name: 'FullOut',
+                fieldLabel: 'Полный вывод',
+                labelAlign: 'right',
+                xtype: 'checkboxfield',
+                labelWidth: 90,
+                margin: '0 0 0 10',
+              }]
+            }, {
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              margin: '10 0 10 0',
+              items: [{
+                xtype: 'combo',
+                name: 'MethodID',
+                store: Ext.create('Ext.data.Store', {
+                  autoLoad: true,
+                  idProperty: 'Value',
+                  fields: ['Value', 'Text'],
+                  proxy: {
+                    type: 'ajax',
+                    url: '@Url.Action("getMethod")',
+                    actionMethods: { read: 'POST' },
+                    reader: {
+                      type: 'json',
+                      rootProperty: 'data'
+                    }
+                  }
+                }),
+                fieldLabel: 'Способ подачи поручения',
+                displayField: 'Text',
+                valueField: 'Value',
+                typeAhead: true,
+                queryMode: 'local',
+                emptyText: '*',
+                //forceSelection: true,
+                //triggerAction: 'all',
+                selectOnFocus: true,
+                flex: 2,
+                margin: '0 10 0 0',
+                allowBlank: false
+              }, {
+                xtype: 'combo',
+                name: 'EmployeID',
+                store: Ext.create('Ext.data.Store', {
+                  remoteSort: true,
+                  autoLoad: true,
+                  fields: ['id', 'name'],
+                  proxy: {
+                    type: 'ajax',
+                    actionMethods: { read: 'POST' },
+                    url: '@Html.Raw(Url.Action("getEMailList", new { sort="name", dir="asc" }))',
+                    reader: {
+                      type: 'json',
+                      rootProperty: 'data'
+                    },
+                    simpleSortMode: true
+                  }
+                }),
+                fieldLabel: 'Сотрудник',
+                displayField: 'name',
+                valueField: 'id',
+                typeAhead: true,
+                queryMode: 'local',
+                emptyText: '*',
+                selectOnFocus: true,
+                flex: 1
+              }]
+            }, {
+              xtype: 'textfield',
+              name: 'Remarque',
+              fieldLabel: 'Комментарий'
+            }, {
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              items: [{
+                xtype: 'textfield',
+                labelWidth: 120,
+                width: 220,
+                name: 'DocNum',
+                fieldLabel: 'Номер документа'
+              }, {
+                xtype: 'splitter'
+              }, {
+                name: 'Qty',
+                fieldLabel: 'Сумма',
+                xtype: 'customnumber',
+                labelWidth: 100,
+                allowDecimals: true,
+                decimalPrecision: 2,
+                hideTrigger: true,
+                keyNavEnabled: false,
+                mouseWheelEnabled: false,
+                autoStripChars: true,
+                margin: '0 10 0 10'
+              }, {
+                xtype: 'combo',
+                name: 'StatusID',
+                store: Ext.create('Ext.data.Store', {
+                  autoLoad: true,
+                  idProperty: 'Value',
+                  fields: ['Value', 'Text', 'Comment'],
+                  proxy: {
+                    type: 'ajax',
+                    url: '@Url.Action("getStatus")',
+                    actionMethods: { read: 'POST' },
+                    reader: {
+                      type: 'json',
+                      rootProperty: 'data'
+                    }
+                  }
+                }),
+                fieldLabel: 'Статус поручения',
+                displayField: 'Text',
+                valueField: 'Value',
+                typeAhead: true,
+                queryMode: 'local',
+                emptyText: '*',
+                //forceSelection: true,
+                //triggerAction: 'all',
+                selectOnFocus: true,
+                flex: 1,
+                allowBlank: false,
+                listeners: {
+                  scope: this,
+                  //select: this.onSelectStatus,
+                  change: this.onChangeStatus
+                }
+              }]
+            }, {
+              xtype: 'fieldset',
+              title: 'Контроль сроков',
+              defaults: {
+                labelWidth: 89,
+                layout: {
+                  type: 'hbox',
+                  defaultMargins: { top: 0, right: 5, bottom: 0, left: 0 }
+                }
+              },
+              bodyPadding: 10,
+              items: [{
+                xtype: 'fieldcontainer',
+                layout: 'hbox',
+                items: [{
+                  margin: '5 5 0 0',
+                  xtype: 'numberfield',
+                  labelAlign: 'left',
+                  labelWidth: 120,
+                  width: 175,
+                  name: 'DaysDog',
+                  fieldLabel: 'Дней на исполнение',
+                  maskRe: /[\d]/
+                }, {
+                  xtype: 'combo',
+                  name: 'DayDogTypeID',
+                  margin: '5 0 0 5',
+                  store: {
+                    xtype: 'store',
+                    fields: ['Text', 'Value'],
+                    data: [{ Text: 'рабочие', Value: 1 }, { Text: 'календарные', Value: 2 }]
+                  },
+                  hideLabel: 'true',
+                  displayField: 'Text',
+                  valueField: 'Value',
+                  typeAhead: true,
+                  queryMode: 'local',
+                  emptyText: '*',
+                  selectOnFocus: true,
+                  width: 110,
+                  allowBlank: false
+                }, {
+                  margin: '5 0 0 0',
+                  labelWidth: 85,
+                  xtype: 'datefield',
+                  labelAlign: 'right',
+                  labelWidth: 100,
+                  format: 'd.m.Y',
+                  width: 208,
+                  name: 'DateFact',
+                  fieldLabel: 'Фактически',
+                  startDay: 1
+                }]
+              }]
+            }]
+          }],
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'bottom',
+            ui: 'footer',
+            items: ['->', {
+              iconCls: 'icon-save',
+              itemId: 'save',
+              text: 'Сохранить',
+              disabled: true,
+              scope: this,
+              handler: this.onSave
+            }, {
+                text: 'Отмена',
+                scope: this,
+                handler: this.onCancel
+              }]
+          }]
+        });
+        this.callParent();
+      },
+
+      onSelectStatus: function (c, record) {
+        var f = this.down('form').getForm();
+        f.findField('Remarque').allowBlank = record.get('Comment') !== '2';
+      },
+
+      onChangeStatus: function (c) {
+        var f = this.down('form').getForm();
+        var r = c.getSelectedRecord();
+        if (r)
+          f.findField('Remarque').allowBlank = c.getSelectedRecord().get('Comment') !== '2';
+      },
+
+      onShowTreaty: function () {
+        var w = Ext.create('Ext.window.Window', {
+          scope: this,
+          title: 'Выбор договора',
+          modal: true,
+          width: 1000,
+          height: window.innerHeight - 100,
+          layout: 'fit',
+          items: [{
+            xtype: 'treatygrid'
+          }],
+          listeners: {
+            scope: this,
+            sel: function (text, id) {
+              //console.log(data);
+              this.down('form').getForm().findField('trNameBrief').setValue(text);
+              this.down('form').getForm().findField('TreatyID').setValue(id);
+              w.close();
+            }
+          }
+        }).show(this);
+      },
+
+      setActiveRecord: function (record) {
+        this.activeRecord = record;
+        if (record) {
+          this.down('#save').enable();
+          //var c = this.down('form').getForm().findField('TreatyID');
+          //c.store.removeAll();
+          //c.store.add({ id: record.data.TreatyID, brief: record.data.trNameBrief });
+          this.down('form').getForm().reset(true).loadRecord(record);
+          //console.log(record.get('IsShowFO'))
+          this.down('form').getForm().findField('FullOut').setDisabled(record.get('IsShowFO') !== true);
+          if (this.title === "Изменить") {
+            var dis = @(User.IsInRole("Admin") ? "false" : "true");
+            this.down('form').getForm().findField('RecuDate').setDisabled(dis);
+            this.down('form').getForm().findField('Tm').setDisabled(dis);
+          }
+          else {
+            this.down('form').getForm().findField('RecuDate').setDisabled(false);
+            this.down('form').getForm().findField('Tm').setDisabled(false);
+          }
+        } else {
+          this.down('#save').disable();
+          this.down('form').getForm().reset();
+        }
+      },
+
+      onSave: function () {
+        var active = this.activeRecord, form = this.down('form').getForm();
+        if (!active) {
+          return;
+        }
+        if (form.isValid()) {
+          if (this.title === 'Добавить')
+            this.fireEvent('create', this, form.getValues(false, false, false, true));
+          else {
+            form.updateRecord(active);
+            this.fireEvent('update');
+          }
+          this.hide();
+        }
+      },
+
+      onCancel: function () {
+        this.hide();
+      }
+    });
+
+    Ext.create('Ext.data.Store', {
+      storeId: 'storeTreaty',
+      idProperty: 'TreatyID',
+      fields: [
+        { name: 'TreatyID', type: 'int' },
+        { name: 'Name', type: 'string' },
+        { name: 'ClientName', type: 'string' }
+      ],
+      autoLoad: false,
+      proxy: {
+        type: 'ajax',
+        actionMethods: { read: 'POST' },
+        url: '@Url.Action("getTreatyList")',
+        reader: {
+          type: 'json',
+          rootProperty: 'data'
+        },
+        simpleSortMode: true
+      }
+    });
+
+    Ext.define('TreatyGrid.Grid', {
+      extend: 'Ext.grid.Panel',
+      alias: 'widget.treatygrid',
+      initComponent: function () {
+        Ext.apply(this, {
+          //defaultButton: 'okButton',
+          //defaultButtonTarget: 'el',
+          store: 'storeTreaty',
+          columns: [{
+            dataIndex: 'Name',
+            header: 'Наименование',
+            flex: 1
+          }, {
+            dataIndex: 'ClientName',
+            header: 'Клиент',
+            flex: 1
+          }, {
+            dataIndex: 'FinInstID',
+            header: 'ID',
+            width: 30
+          }],
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'top',
+            items: [{
+              xtype: 'tbtext',
+              text: ' Поиск: '
+            }, {
+              xtype: 'textfield',
+                itemId: 'tfFind',
+                listeners: {
+                  specialkey: function (field, e) {
+                    if (e.getKey() == e.ENTER) {
+                      field.up('toolbar').down('#refresh').click();
+                    }
+                  }
+                }
+            }, '-', {
+              iconCls: 'icon-refresh',
+              //reference: 'okButton',
+              itemId: 'refresh',
+              text: 'Обновить',
+              handler: this.onRefreshClick,
+              scope: this
+            }]
+          }],
+          viewConfig: {
+            enableTextSelection: true,
+            listeners: {
+              scope: this,
+              beforerender: {
+                fn: this.onRefreshClick
+              },
+              afterrender: function () {
+                this.down('#tfFind').focus(true);
+              },
+              itemdblclick: function (view, record) {
+                return this.onSelect(record);
+              },
+              cellkeydown: function(view, td, cellIndex, record, tr, rowIndex, e) {
+                if (e.getKey() == e.ENTER) {
+                  return this.onSelect(record);
+                }
+              }
+            }
+          }
+        });
+        this.callParent();
+      },
+
+      onRefreshClick: function () {
+        this.store.proxy.extraParams = {
+          filter: this.down('#tfFind').getValue()
+        };
+        this.store.load();
+      },
+
+      onSelect: function (record) {
+        this.up('window').fireEvent('sel', record.get('Name'), record.get('TreatyID'));
+        return false;
+      }
+    });
+
+    Ext.define('EnregF.Win', {
+      extend: 'Ext.window.Window',
+      alias: 'widget.enregfmwin',
+      initComponent: function () {
+        Ext.apply(this, {
+          activeRecord: null,
+          fileurl: null,
+          width: 500,
+          closeAction: 'hide',
+          layout: 'fit',
+          modal: true,
+          autoHeight: true,
+          plain: true,
+          buttonAlign: 'center',
+          border: true,
+          items: [{
+            xtype: 'form',
+            bodyPadding: 10,
+            defaults: { anchor: '100%' },
+            defaultType: 'textfield',
+            layoutConfig: { labelSeparator: '' },
+            fieldDefaults: { labelWidth: 100, labelAlign: 'left' },
+            items: [{
+              xtype: 'form',
+              padding: '0 0 15 0',
+              border: false,
+              waitMsgTarget: true,
+              defaults: { anchor: '100%' },
+              items: [{
+                xtype: 'filefield',
+                emptyText: 'Выбор файла',
+                name: 'fn',
+                fieldLabel: 'Загрузка',
+                buttonText: '',
+                buttonConfig: {
+                  iconCls: 'upload-icon'
+                }
+              }],
+              buttons: [{
+                text: 'Загрузить',
+                handler: function () {
+                  var form = this.up('form').getForm();
+                  if (form.isValid()) {
+                    form.submit({
+                      url: this.up('window').fileurl + '?id=' + this.up('window').activeRecord.get('id'),
+                      waitMsg: 'Отправка файла...',
+                      waitMsgTarget: true,
+                      success: function (fp, o) {
+                        fp.owner.up('form').getForm().findField("FileName").setValue(o.result.file);
+                        alert('Файл "' + o.result.file + '" загружен');
+                      },
+                      failure: function (fp, o) {
+                        alert('Ошибка');
+                      }
+                    });
+                  }
+                }
+              }]
+            }, {
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              items: [{
+                xtype: 'textfield',
+                id: 'FileName',
+                name: 'FileName',
+                fieldLabel: 'Файл',
+                readOnly: true,
+                flex: 1
+              }, {
+                xtype: 'button',
+                text: 'X',
+                margin: '0 0 0 3',
+                scope: this,
+                handler: this.onClearFileName
+              }]
+            }],
+            listeners: {
+            }
+          }],
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'bottom',
+            ui: 'footer',
+            items: ['->', {
+              iconCls: 'icon-save',
+              itemId: 'save',
+              text: 'Сохранить',
+              disabled: true,
+              scope: this,
+              handler: this.onSave
+            }, {
+                text: 'Отмена',
+                scope: this,
+                handler: this.onCancel
+              }]
+          }]
+        });
+        this.callParent();
+      },
+
+      setActiveRecord: function (record) {
+        var me = this;
+        var form = me.down('form').getForm();
+        me.activeRecord = record;
+        if (record) {
+          this.down('#save').enable();
+          form.reset(true).loadRecord(record);
+        } else {
+          me.down('#save').disable();
+          form.reset();
+        }
+      },
+
+      setFileName: function (name) {
+        var me = this;
+        var fn = me.down('form').getForm().findField("FileName");
+        //if (fn)
+        fn.name = name;
+      },
+
+      onClearFileName: function () {
+        var me = this;
+        me.down('form').getForm().findField("FileName").setValue('');
+      },
+
+      setUrl: function (_fileurl) {
+        var me = this
+        me.fileurl = _fileurl
+      },
+
+      onSave: function () {
+        var active = this.activeRecord, form = this.down('form').getForm();
+        if (!active) {
+          return;
+        }
+        if (form.isValid()) {
+          form.updateRecord(active);
+          this.fireEvent('update');
+          this.hide();
+        }
+      },
+
+      onCancel: function () {
+        this.hide();
+      }
+    });
+
+    Ext.define('EnregStepLog.Grid', {
+      extend: 'Ext.grid.Panel',
+      alias: 'widget.enregsteploggrid',
+      initComponent: function () {
+        Ext.apply(this, {
+          columns: [{
+            header: 'Шаг',
+            dataIndex: 'Step',
+            width: 100,
+            renderer: function (value, metaData, record) {
+              if (!record.get('IsConfirmed'))
+                if (metaData)
+                  metaData.tdStyle = 'color: red';
+              var sn = record.get('Name');
+              return (value ? value : '') + (sn ? ' - ' + record.get('Name') : '');
+            }
+          }, {
+            header: 'Получено',
+            dataIndex: 'InDateTime',
+            width: 130,
+            xtype: 'datecolumn',
+            format: 'd.m.Y H:i:s'
+            }, {
+              header: 'Пользователь',
+              dataIndex: 'UserName',
+              width: 250
+            }, {
+            header: 'Подтверждено',
+            dataIndex: 'InDateTimeC',
+            width: 130,
+            xtype: 'datecolumn',
+            format: 'd.m.Y H:i:s'
+          }],
+          viewConfig: {
+            enableTextSelection: true,
+            listeners: {
+              scope: this
+            }
+          }
+        });
+        this.callParent();
+      }
+
+    });
+
+    Ext.define('Enreg.Grid', {
+      extend: 'Ext.grid.Panel',
+      alias: 'widget.enreggrid',
+      initComponent: function () {
+        Ext.apply(this, {
+          wini: null,
+          border: false,
+          loadMask: true,
+          plugins: {
+            gridfilters: {
+              menuFilterText: 'Фильтр'
+            }
+          },
+          columns: [{
+            header: 'Номер',
+            dataIndex: 'Numero',
+            width: 90,
+            filter: {
+              type: 'string',
+              emptyText: 'Номер'
+            }
+          }, {
+            header: 'Клиент',
+            dataIndex: 'ClnName',
+            width: 170,
+            tdCls: 'wrap-text',
+            filter: {
+              type: 'string',
+              emptyText: 'Клиент'
+            }
+          }, {
+            header: 'Договор',
+            dataIndex: 'trNameBrief',
+            width: 95,
+            filter: {
+              type: 'string',
+              emptyText: 'Договор'
+            }
+          }, {
+            header: 'Дата получения',
+            dataIndex: 'RecuDate',
+            width: 75,
+            xtype: 'datecolumn',
+            format: 'd.m.Y'
+          }, {
+            header: 'Время получения',
+            dataIndex: 'Tm',
+            width: 50,
+            xtype: 'datecolumn',
+            format: 'H:i'
+          }, {
+            header: 'Статус поручения',
+            dataIndex: 'Status',
+            filter: {
+              type: 'list'
+            }
+          }, {
+            header: 'Оригинал',
+            dataIndex: 'Original',
+            trueText: 'Да',
+            falseText: 'Нет',
+            width: 60,
+            xtype: 'booleancolumn',
+            filter: {
+              type: 'boolean',
+              yesText: 'Да',
+              noText: 'Нет'
+            }
+          }, {
+            header: 'Скан-копия',
+            dataIndex: 'ScanCopy',
+            trueText: 'Да',
+            falseText: 'Нет',
+            width: 50,
+            xtype: 'booleancolumn',
+            filter: {
+              type: 'boolean',
+              yesText: 'Да',
+              noText: 'Нет'
+            }
+          }, {
+            header: 'Полный вывод',
+            dataIndex: 'FullOut',
+            trueText: 'Да',
+            falseText: 'Нет',
+            width: 50,
+            xtype: 'booleancolumn',
+            filter: {
+              type: 'boolean',
+              yesText: 'Да',
+              noText: 'Нет'
+            }
+          }, {
+            header: 'Тип документа',
+            dataIndex: 'DTName',
+            width: 195,
+            tdCls: 'wrap-text',
+            filter: {
+              type: 'list'
+            }
+          }, {
+            header: 'Сотрудник',
+            dataIndex: 'EmployeNom',
+            width: 95,
+            filter: {
+              type: 'list'
+            }
+          }, {
+            header: 'Метод',
+            dataIndex: 'Method',
+            width: 195,
+            tdCls: 'wrap-text',
+            filter: {
+              type: 'list'
+            }
+          }, {
+            header: 'Шаг',
+            dataIndex: 'Step',
+            renderer: function (value, metaData, record) {
+              if (!record.get('IsStepConfirmed'))
+                if (metaData)
+                  metaData.tdStyle = 'color: red';
+              var sn = record.get('StepName');
+              return (value ? value : '') + (sn ? ' - ' + record.get('StepName') : '');
+            },
+            width: 100,
+            filter: {
+              type: 'list'
+            }
+          }, {
+            header: 'Примечание',
+            dataIndex: 'Remarque',
+            width: 195,
+            tdCls: 'wrap-text'
+          }, {
+            header: 'Дней на исполнение',
+            dataIndex: 'DaysDog',
+            width: 80
+          }, {
+            header: 'Тип дней',
+            dataIndex: 'DayDogType',
+            width: 90,
+            filter: {
+              type: 'list'
+            }
+          }, {
+            header: 'Дата исполнения(план)',
+            dataIndex: 'DateDog',
+            width: 90,
+            xtype: 'datecolumn',
+            format: 'd.m.Y',
+            filter: {
+              type: 'date'
+            }
+          }, {
+            header: 'Дата фактическая',
+            dataIndex: 'DateFact',
+            width: 70,
+            xtype: 'datecolumn',
+            format: 'd.m.Y',
+            filter: {
+              type: 'date'
+            }
+          }, {
+            header: 'Сумма',
+            dataIndex: 'Qty',
+            width: 100,
+            align: 'right',
+            xtype: 'numbercolumn'
+          }, {
+            header: 'Файл',
+            dataIndex: 'FileName',
+            renderer: function (value) {
+              if (!value) return '';
+              return Ext.String.format('<a href="@Url.Action("GetFile")?data={1}" target="_blank">{0}</a>', value, encodeURIComponent(value));
+            },
+            width: 185,
+            filter: {
+              type: 'number'
+            }
+          }, {
+            header: 'Платежный документ',
+            dataIndex: 'FileNameO',
+            renderer: function (value) {
+              if (!value) return '';
+              return Ext.String.format('<a href="@Url.Action("GetFileO")?data={1}" target="_blank">{0}</a>', value, encodeURIComponent(value));
+            },
+            width: 185
+          }, {
+            header: 'Доп. документ',
+            dataIndex: 'FileNameD',
+            renderer: function (value) {
+              if (!value) return '';
+              return Ext.String.format('<a href="@Url.Action("GetFileD")?data={1}" target="_blank">{0}</a>', value, encodeURIComponent(value));
+            },
+            width: 185
+          }, {
+            header: 'Голосовое файл',
+            dataIndex: 'FileNameG',
+            renderer: function (value, metaData, record) {
+              if (!value) return '';
+              return Ext.String.format('<a href="@Url.Action("GetFileG")/{1}" target="_blank">{0}</a>', value, record.get('id'));
+            },
+            width: 185
+          }],
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'top',
+            items: [{
+              xtype: 'tbtext', text: ' Период: '
+            }, {
+              xtype: 'datefield',
+              itemId: 'd1',
+              allowBlank: false,
+              format: 'd.m.Y',
+              vtype: 'daterange',
+              endDateField: 'd2',
+              startDay: 1,
+              value: Ext.Date.add(Ext.Date.clearTime(new Date(), false), Ext.Date.DAY, -Ext.Date.getDayOfYear(new Date())),
+              width: 90
+            }, ' ', {
+              xtype: 'datefield',
+              itemId: 'd2',
+              allowBlank: false,
+              format: 'd.m.Y',
+              vtype: 'daterange',
+              startDateField: 'd1',
+              startDay: 1,
+              value: Ext.Date.add(Ext.Date.clearTime(new Date(), false), Ext.Date.DAY, 0),
+              width: 90,
+              margin: '0 5 0 0'
+            }, ' Без выполненных: ', {
+              xtype: 'checkbox',
+              itemId: 'cbSF',
+              checked: true
+            }, {
+              iconCls: 'icon-refresh',
+              text: 'Обновить',
+              scope: this,
+              handler: this.onRefreshClick
+            }, {
+              iconCls: 'icon-add',
+              text: 'Добавить',
+              scope: this,
+              handler: this.onAddClick
+            }, {
+              text: 'Изменить',
+              disabled: true,
+              itemId: 'change',
+              scope: this,
+              handler: this.onChangeClick
+            }, {
+              iconCls: 'icon-delete',
+              text: 'Удалить',
+              disabled: true,
+              itemId: 'delete',
+              scope: this,
+              handler: this.onDeleteClick
+            }, {
+              text: 'Файл',
+              xtype: 'button',
+              disabled: true,
+              itemId: 'fileform',
+              scope: this,
+              menu: {
+                items: [{
+                  text: 'Скан',
+                  scope: this,
+                  handler: this.onFileFormClick
+                }, {
+                  text: 'Платежный документ',
+                  scope: this,
+                  handler: this.onFileFormOClick
+                }, {
+                  text: 'Дополнительный документ',
+                  scope: this,
+                  handler: this.onFileFormDClick
+                }, {
+                  text: 'Файл голосовое',
+                  scope: this,
+                  handler: this.onFileFormGClick
+                }]
+              }
+            }, @*{
+              text: 'ПлатДок',
+              disabled: true,
+              itemId: 'fileformO',
+              scope: this,
+              handler: this.onFileFormOClick
+            }, {
+              text: 'Отправить',
+              itemId: 'sendEmail',
+              disabled: true,
+              scope: this,
+              handler: this.onSendEmailClick
+            },*@ {
+              xtype: 'exporterbutton',
+              text: 'Экспорт',
+              action: '@Url.Action("ExportExcel", "Home", new { area = "" })',
+              file: 'ar.xml'
+            }, {
+              text: 'Лог',
+              itemId: 'btnLog',
+              disabled: true,
+              scope: this,
+              handler: this.onLogClick
+            }, {
+              iconCls: 'icon-confirm',
+              tooltip: 'Подтвердить',
+              itemId: 'confirm',
+              disabled: true,
+              scope: this,
+              handler: this.onConfirmClick
+            }, {
+              text: 'Очистить фильтр',
+              itemId: 'clearFilter',
+              scope: this,
+              handler: this.onClearFilterClick
+            }, '->', {
+              xtype: 'checkbox',
+              itemId: 'cbAuto',
+              checked: false,
+              boxLabel: 'Автообновление',
+              scope: this,
+              handler: this.onAutoChange
+            }, {
+              xtype: 'combo',
+              store: {
+                xtype: 'store',
+                fields: ['tm', 'tmv'],
+                data: [{ tm: '5 мин.', tmv: 300000 }, { tm: '10 мин.', tmv: 600000 }]
+              },
+              itemId: 'tm',
+              displayField: 'tm',
+              valueField: 'tmv',
+              querymodal: 'local',
+              forceSelection: true,
+              value: 600000,
+              listeners: {
+                scope: this,
+                change: this.onTmChange
+              }
+            }, {
+              text: 'Настройка',
+              iconCls: 'icon-setting',
+              handler: function () { window.location = '@Url.Action("dtsteps")' }
+            }]
+          }],
+          viewConfig: {
+            enableTextSelection: true,
+            trackOver: true,
+            listeners: {
+              scope: this,
+              itemdblclick: this.onChangeClick,
+              itemclick: this.onItemClick,
+              selectionchange: this.onSelectChange
+            },
+            getRowClass: function (record) {
+              if (record.get('IsDone'))
+                return 'gray-row';
+            }
+          }
+        })
+        this.callParent();
+      },
+
+      onAutoChange: function (me, newValue) {
+        var me = this
+        if (newValue) {
+          var tm = me.down('#tm');
+          var interval = tm ? tm.getValue() : 10 * 60 * 1000;
+          if (me.curTimer)
+            clearTimeout(me.curTimer);
+          me.curTimer = setTimeout(function request() {
+            me.onRefreshClick();
+            me.curTimer = setTimeout(request, interval);
+          }, interval);
+        }
+        else {
+          if (me.curTimer)
+            clearTimeout(me.curTimer);
+        }
+      },
+
+      onTmChange: function () {
+        var me = this;
+        var cbAuto = me.down('#cbAuto');
+        if (cbAuto.getValue() === true)
+          cbAuto.setValue(false);
+      },
+
+      onRefreshClick: function () {
+        var me = this;
+        me.store.proxy.extraParams = { d1: me.down('#d1').getValue(), d2: me.down('#d2').getValue(), sd: me.down('#cbSF').getValue() };
+        me.store.load({
+          scope: this,
+          callback: function (records, operation, success) {
+            var selections = this.getView().getSelectionModel().getSelection();
+            if (selections.length === 0 && records && records.length > 0) {
+              this.getView().select(0);
+            }
+          }
+        });
+      },
+
+      onAddClick: function () {
+        var me = this;
+        var rec = new Enreg({ RecuDate: Ext.Date.clearTime(new Date(), false), StatusID: 27205, DayDogTypeID: 1 });
+        if (!me.wini) {
+          me.onCreateWin();
+        }
+        me.wini.setTitle('Добавить');
+        me.wini.setActiveRecord(rec);
+        me.wini.show(me);
+      },
+
+      onChangeClick: function () {
+        if (!this.wini) {
+          this.onCreateWin();
+        }
+        this.wini.setTitle('Изменить');
+        this.wini.setActiveRecord(this.getSelectionModel().getSelection()[0]);
+        this.wini.show(this);
+      },
+
+      onCreateWin: function () {
+        this.wini = Ext.create('Enreg.Win', {
+          scope: this,
+          listeners: {
+            scope: this,
+            create: function (form, data) {
+              this.store.insert(0, data);
+              this.store.sync();
+            },
+            update: function () {
+              this.store.sync();
+            }
+          }
+        });
+      },
+
+      onItemClick: function (me, record) {
+        var grid = this.up('viewport').down('#steplog');
+        if (grid) {
+          if (record) {
+            grid.store.proxy.extraParams = { id: record.get('id') };
+            grid.store.load();
+          }
+        }
+      },
+
+      onSelectChange: function (selModel, selections) {
+        @if (User.IsInRole("Admin")) {
+            <text>this.down('#delete').setDisabled(selections.length === 0);</text>
+          }
+        this.down('#change').setDisabled(selections.length === 0);
+        this.down('#fileform').setDisabled(selections.length === 0);
+        //this.down('#fileformO').setDisabled(selections.length === 0);
+        //this.down('#sendEmail').setDisabled(selections.length === 0);
+        this.down('#confirm').setDisabled(selections.length === 0);
+        this.down('#btnLog').setDisabled(selections.length === 0);
+      },
+
+      onDeleteClick: function () {
+        var selection = this.getView().getSelectionModel().getSelection()[0];
+        if (selection) {
+          if (window.confirm('Удалить стр.?')) {
+            this.store.remove(selection);
+            this.store.sync();
+          }
+        }
+      },
+
+      onLogClick: function () {
+        if (!this.wins) {
+          this.wins = Ext.create('EnregLog.Win');
+        }
+        var grid = this.wins.down('grid');
+        grid.store.proxy.extraParams = { id: this.getSelectionModel().getSelection()[0].get('id') };
+        grid.store.load();
+        this.wins.setTitle('Лог');
+        this.wins.show(this);
+      },
+
+      onConfirmClick: function () {
+        window.open('@Url.Action("enregConfirm")/' + this.getView().getSelectionModel().getSelection()[0].get('id'), '_blank', 'location=yes,scrollbars=yes,resizable=yes,status=yes')
+      },
+
+      onSendEmailClick: function () {
+        if (window.confirm('Отправить сообщение?')) {
+          Ext.Ajax.request({
+            url: '@Url.Action("enregCourriel")',
+            timeout: 60000,
+            params: {
+              id: this.getView().getSelectionModel().getSelection()[0].get('id')
+            },
+            success: function (response) {
+              var text = response.responseText;
+              alert('Выполнено.');
+            },
+            failure: function (response) {
+              var text = response.responseText;
+              alert('Ошибка!');
+            }
+          });
+        }
+      },
+
+      onFileFormClick: function () {
+        if (!this.winf) {
+          this.winf = Ext.create('EnregF.Win', {
+            scope: this,
+            listeners: {
+              scope: this,
+              update: function () {
+                this.store.sync();
+              }
+            }
+          });
+        }
+        this.winf.setTitle('Привязать');
+        var rec = this.getSelectionModel().getSelection()[0];
+        this.winf.setUrl('@Url.Action("FUEnreg")');
+        this.winf.setFileName('FileName');
+        this.winf.setActiveRecord(rec);
+        this.winf.show(this);
+      },
+
+      onFileFormOClick: function () {
+        if (!this.winf) {
+          this.winf = Ext.create('EnregF.Win', {
+            scope: this,
+            listeners: {
+              scope: this,
+              update: function () {
+                this.store.sync();
+              }
+            }
+          });
+        }
+        this.winf.setTitle('Платежный документ');
+        var rec = this.getSelectionModel().getSelection()[0];
+        this.winf.setUrl('@Url.Action("FUEnregO")');
+        this.winf.setFileName('FileNameO');
+        this.winf.setActiveRecord(rec);
+        this.winf.show(this);
+      },
+
+      onFileFormDClick: function () {
+        if (!this.winf) {
+          this.winf = Ext.create('EnregF.Win', {
+            scope: this,
+            listeners: {
+              scope: this,
+              update: function () {
+                this.store.sync();
+              }
+            }
+          });
+        }
+        this.winf.setTitle('Дополнительный документ');
+        var rec = this.getSelectionModel().getSelection()[0];
+        this.winf.setUrl('@Url.Action("FUEnregD")');
+        this.winf.setFileName('FileNameD');
+        this.winf.setActiveRecord(rec);
+        this.winf.show(this);
+      },
+
+      onFileFormGClick: function () {
+        if (!this.winf) {
+          this.winf = Ext.create('EnregF.Win', {
+            scope: this,
+            listeners: {
+              scope: this,
+              update: function () {
+                this.store.sync();
+              }
+            }
+          });
+        }
+        this.winf.setTitle('Файл голосовое');
+        var rec = this.getSelectionModel().getSelection()[0];
+        this.winf.setUrl('@Url.Action("FUEnregG")');
+        this.winf.setFileName('FileNameG');
+        this.winf.setActiveRecord(rec);
+        this.winf.show(this);
+      },
+
+      onClearFilterClick: function () {
+        this.filters.clearFilters();
+      }
+
+    });
+
+    Ext.onReady(function () {
+
+      Ext.tip.QuickTipManager.init();
+
+      Ext.create('Ext.Viewport', {
+        layout: 'border',
+        items: [{
+          region: 'north',
+          border: false,
+          contentEl: 'header'
+        }, {
+          region: 'center',
+          itemId: 'grid',
+          border: false,
+          xtype: 'enreggrid',
+          store: 'storeEnreg'
+        }, {
+          region: 'south',
+          split: true,
+          minHeight: 100,
+          itemId: 'steplog',
+          xtype: 'enregsteploggrid',
+          store: 'storeEnregStepLog'
+        }]
+      });
+    });
+  </script>
+}

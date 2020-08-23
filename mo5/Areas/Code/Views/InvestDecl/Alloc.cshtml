@@ -1,0 +1,786 @@
+﻿@{
+  ViewBag.Title = "Траст менеджер";
+  Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section scripts {
+  <style type="text/css">
+    .icon-refresh
+    {
+      background-image: url(@Href("~/Scripts/ExtJS62/build/classic/theme-gray/resources/images/grid/refresh.gif")) !important;
+    }
+    .gray-row .x-grid-cell {
+      color: gray;
+    }
+  </style>
+  <link rel="stylesheet" type="text/css" href="~/Scripts/ExtJS62/build/classic/theme-gray/resources/theme-gray-all.css" />
+  <script type="text/javascript" src="~/Scripts/ExtJS62/ext-bootstrap.js"></script>
+
+  <script type="text/javascript" src="~/Scripts/ExtJS62/build/classic/locale/locale-ru.js"></script>
+  <script type="text/javascript" src="~/Scripts/ExtJS62/ux/Exporter.js"></script>
+
+  <script type="text/javascript">
+
+    Ext.define('Portfolio', {
+      extend: 'Ext.data.Model',
+      idProperty: 'PortfolioID',
+      fields: [
+        { name: 'PortfolioID', type: 'int' },
+        { name: 'Name', type: 'string' },
+        { name: 'PortfolioTypeID', type: 'int' },
+        { name: 'PortfolioType', type: 'string', persist: false }
+      ],
+      autoLoad: false,
+      proxy: {
+        type: 'ajax',
+        actionMethods: { read: 'POST' },
+        url: '@Url.Action("getPortfolioList")',
+        reader: {
+          type: 'json',
+          rootProperty: 'data'
+        },
+        simpleSortMode: true
+      }
+    });
+
+    Ext.create('Ext.data.Store', {
+      storeId: 'storePort',
+      model: 'Portfolio'
+    });
+
+    Ext.define('Treaty', {
+      extend: 'Ext.data.Model',
+      idProperty: 'TreatyID',
+      fields: [
+        { name: 'TreatyID', type: 'int' },
+        { name: 'Name', type: 'string' },
+        { name: 'ClientName', type: 'string', persist: false },
+        { name: 'FinInstID', type: 'int' },
+        { name: 'IsDisabled', type: 'boolean', defaultValue: false },
+        { name: 'DateStart', type: 'date', dateFormat: 'c' },
+        { name: 'DateFinish', type: 'date', dateFormat: 'c' }
+      ],
+      autoLoad: false,
+      proxy: {
+        type: 'ajax',
+        actionMethods: { read: 'POST' },
+        url: '@Url.Action("getTreatyByPortfs")',
+        reader: {
+          type: 'json',
+          rootProperty: 'data'
+        },
+        simpleSortMode: true
+      }
+    });
+
+    Ext.create('Ext.data.Store', {
+      storeId: 'storeTreaty',
+      model: 'Treaty'
+    });
+
+    Ext.create('Ext.data.Store', {
+      storeId: 'storePortType',
+      idProperty: 'PortfolioTypeID',
+      fields: [
+        { name: 'PortfolioTypeID', type: 'int' },
+        { name: 'Name', type: 'string' }
+      ],
+      autoLoad: false,
+      proxy: {
+        type: 'ajax',
+        actionMethods: { read: 'POST' },
+        url: '@Url.Action("getPortfolioTypeList")',
+        reader: {
+          type: 'json',
+          rootProperty: 'data'
+        },
+        simpleSortMode: true
+      }
+    });
+
+    Ext.define('Rests', {
+      extend: 'Ext.data.Model',
+      fields: [
+        { name: 'TreatyID', type: 'int' },
+        { name: 'trName', type: 'string' },
+        { name: 'FinInstID', type: 'int' },
+        { name: 'clName', type: 'string' },
+        { name: 'SecurityID', type: 'int' },
+        { name: 'secName', type: 'string', persist: false },
+        { name: 'ISIN', type: 'string', persist: false },
+        { name: 'RegNumber', type: 'string', persist: false },
+        { name: 'Class', type: 'int' },
+        { name: 'ClassName', type: 'string' },
+        { name: 'DateEnd', type: 'date', dateFormat: "c", persist: false },
+        { name: 'Issuer', type: 'string', persist: false },
+        { name: 'IssuerINN', type: 'string', persist: false },
+        { name: 'Num', type: 'number' },
+        { name: 'Course', type: 'number' },
+        { name: 'Coupon', type: 'number' },
+        { name: 'AccType', type: 'int' },
+        { name: 'Account', type: 'string' },
+        { name: 'Qty', type: 'number' }
+      ]
+    });
+
+    Ext.create('Ext.data.Store', {
+      storeId: 'storeRests',
+      model: 'Rests',
+      autoLoad: false,
+      proxy: {
+        type: 'ajax',
+        actionMethods: { read: 'POST' },
+        url: '@Url.Action("getRests")',
+        reader: {
+          type: 'json',
+          rootProperty: 'data'
+        },
+        simpleSortMode: true
+      }
+    });
+
+    Ext.create('Ext.data.Store', {
+      storeId: 'storeRestsSum',
+      model: 'Rests'
+    });
+
+    Ext.create('Ext.data.Store', {
+      storeId: 'storeSec',
+      idProperty: 'SecurityID',
+      fields: [
+        { name: 'SecurityID', type: 'int' },
+        { name: 'Name', type: 'string' },
+        { name: 'ISIN', type: 'string' },
+        { name: 'SecType', type: 'string' },
+        { name: 'DateEnd', type: 'date', dateFormat: "c", persist: false },
+        { name: 'NominalFundID', type: 'int' },
+        { name: 'Issuer', type: 'string' },
+        { name: 'IssuerINN', type: 'string' }
+      ],
+      autoLoad: false,
+      proxy: {
+        type: 'ajax',
+        actionMethods: { read: 'POST' },
+        url: '@Url.Action("getSec")',
+        reader: {
+          type: 'json',
+          rootProperty: 'data'
+        },
+        simpleSortMode: true
+      }
+    });
+
+    Ext.define('PortfolioGrid.Grid', {
+      extend: 'Ext.grid.Panel',
+      alias: 'widget.portgrid',
+      initComponent: function () {
+        Ext.apply(this, {
+          selModel: {
+            type: 'checkboxmodel'
+          },
+          columns: [{
+            dataIndex: 'Name',
+            header: 'Наименование',
+            flex: 3
+          }, {
+            dataIndex: 'PortfolioType',
+            header: 'Тип',
+            flex: 1
+          }, {
+            dataIndex: 'PortfolioID',
+            header: 'ID',
+            width: 20
+          }],
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'top',
+            items: [{
+              xtype: 'tbtext',
+              text: ' Поиск: '
+            }, {
+              xtype: 'textfield',
+              itemId: 'tfFind'
+            }, '-', ' Тип: ', {
+              itemId: 'cbType',
+              xtype: 'combobox',
+              store: 'storePortType',
+              displayField: 'Name',
+              valueField: 'PortfolioTypeID',
+              typeAhead: true,
+              queryMode: 'local',
+              emptyText: '*',
+              selectOnFocus: true,
+              width: 180,
+              listeners: {
+                beforerender: function () {
+                  this.store.load();
+                }
+              }
+            }, ' ', {
+              iconCls: 'icon-refresh',
+              text: 'Обновить',
+              handler: this.onRefreshClick,
+              scope: this
+            }]
+          }],
+          viewConfig: {
+            enableTextSelection: true,
+            listeners: {
+              scope: this,
+              beforerender: {
+                fn: this.onRefreshClick
+              },
+              itemdblclick: {
+                fn: this.onDblClick
+              },
+              selectionchange: {
+                fn: this.onSelectChange
+              }
+            }
+          }
+        });
+        this.callParent();
+      },
+
+      onRefreshClick: function () {
+        this.store.proxy.extraParams = {
+          TypeID: this.down('#cbType').getValue(),
+          filter: this.down('#tfFind').getValue()
+        };
+        this.store.load();
+      },
+
+      onDblClick: function (view, record, item, index, e) {
+        var tabs = this.up('tabpanel');
+        var tab = tabs.down('#tcTreaty');
+        var grid = tab.down('treatygrid');
+        grid.setTitle(record.get('Name'));
+        grid.store.proxy.extraParams = { "id[0]": record.get('PortfolioID') };
+        grid.store.load();
+
+        tab.tab.show();
+        tabs.setActiveTab(tab);
+        return false;
+      }
+    });
+
+    Ext.define('TreatyGrid.Grid', {
+      extend: 'Ext.grid.Panel',
+      alias: 'widget.treatygrid',
+      initComponent: function () {
+        Ext.apply(this, {
+          selModel: {
+            type: 'checkboxmodel'
+          },
+          columns: [{
+            dataIndex: 'Name',
+            header: 'Наименование',
+            flex: 1
+          }, {
+            dataIndex: 'ClientName',
+            header: 'Клиент',
+            flex: 1
+          }, {
+            dataIndex: 'TreatyID',
+            header: 'ID',
+            width: 30
+          }],
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'top',
+            items: [{
+              xtype: 'tbtext',
+              text: ' Поиск: '
+            }, {
+              xtype: 'textfield',
+              itemId: 'tfFind'
+            }, '-', {
+              iconCls: 'icon-refresh',
+              text: 'Обновить',
+              handler: this.onRefreshClick,
+              scope: this
+            }]
+          }],
+          viewConfig: {
+            enableTextSelection: true,
+            listeners: {
+              scope: this,
+              beforerender: {
+                //fn: this.onRefreshClick
+              },
+              itemdblclick: {
+                fn: this.onSelect
+              },
+              itemclick: {
+                fn: this.onSelectChange
+              }
+            }
+          }
+        });
+        this.callParent();
+      },
+
+      onRefreshClick: function () {
+        this.store.proxy.extraParams.filter = this.down('#tfFind').getValue();
+        this.store.load();
+      }
+    });
+
+    Ext.define('RestsGrid.Grid', {
+      extend: 'Ext.grid.Panel',
+      alias: 'widget.restsgrid',
+      initComponent: function () {
+        Ext.apply(this, {
+          tid: {},
+          columns: [{
+            dataIndex: 'clName',
+            header: 'Клиент',
+            width: 150
+          }, {
+            dataIndex: 'trName',
+            header: 'Договор',
+            width: 100
+          }, {
+            dataIndex: 'ClassName',
+            header: 'Тип актива',
+            width: 100
+          }, {
+            dataIndex: 'secName',
+            header: 'Актив',
+            width: 150
+          }, {
+            dataIndex: 'ISIN',
+            header: 'ISIN',
+            width: 100
+          }, {
+            dataIndex: 'RegNumber',
+            header: 'Рег.номер',
+            width: 110
+          }, {
+            dataIndex: 'DateEnd',
+            header: 'Погашение',
+            renderer: Ext.util.Format.dateRenderer('d.m.Y'),
+            width: 85
+          }, {
+            dataIndex: 'Issuer',
+            header: 'Эмитент',
+            width: 150
+          }, {
+            dataIndex: 'IssuerINN',
+            header: 'ИНН',
+            width: 80
+          }, {
+            dataIndex: 'Num',
+            header: 'Кол-во',
+            xtype: 'numbercolumn',
+            format: '0.####',
+            align: 'end',
+            width: 80
+          }, {
+            dataIndex: 'Course',
+            header: 'Цена',
+            xtype: 'numbercolumn',
+            format: '0,000.00####',
+            align: 'end',
+            width: 100
+          }, {
+            dataIndex: 'Coupon',
+            header: 'НКД',
+            xtype: 'numbercolumn',
+            align: 'end',
+            width: 100
+          }, {
+            dataIndex: 'Qty',
+            header: 'Сумма',
+            xtype: 'numbercolumn',
+            align: 'end',
+            width: 100
+          }, {
+            dataIndex: 'Account',
+            header: 'Счёт',
+            width: 90
+          }],
+          tbar: ['-', {
+            text: 'Договоры',
+            handler: this.onGetTreatiesClick,
+            scope: this
+          }, 'Группировать?', {
+              xtype: 'checkbox',
+              itemId: 'cbIsGroupSec'
+            }, ' ', {
+              iconCls: 'icon-refresh',
+              text: 'Обновить',
+              handler: this.onRefreshClick,
+              scope: this
+            }],
+          viewConfig: {
+            enableTextSelection: true,
+            listeners: {
+              scope: this,
+              beforerender: {
+                //fn: this.onRefreshClick
+              },
+              itemdblclick: this.onItemDblClick,
+              itemclick: {
+                //fn: this.onSelectChange
+              }
+            }
+          }
+        });
+        this.callParent();
+      },
+
+      onItemDblClick: function () {
+        if (!this.wini) {
+          this.wini = Ext.create('Alloc.Win', {
+            scope: this,
+            listeners: {
+            }
+          });
+        }
+        this.wini.setActiveRecord(this.getSelectionModel().getSelection()[0]);
+        this.wini.show(this);
+      },
+
+      onGetTreatiesClick: function () {
+        var me = this;
+        Ext.create('Ext.window.Window', {
+          scope: this,
+          title: 'Выбор договоров',
+          modal: true,
+          layout: 'fit',
+          width: 1000,
+          height: window.innerHeight - 100,
+          items: [{
+            xtype: 'tabpanel',
+            //plain: true,
+            items: [{
+              title: 'Стратегии',
+              layout: 'fit',
+              items: [{
+                region: 'center',
+                xtype: 'portgrid',
+                store: 'storePort',
+                buttonAlign: 'center',
+                fbar: [{
+                  disabled: true,
+                  itemId: 'dog',
+                  text: 'Договоры >>',
+                  handler: this.onTreatiesClick
+                }],
+                listeners: {
+                  selectionchange: function (t, selected) {
+                    this.down('#dog').setDisabled(selected.length === 0);
+                  }
+                }
+              }]
+            }, {
+              title: 'Договоры',
+              itemId: 'tcTreaty',
+              layout: 'fit',
+              hidden: true,
+              items: [{
+                xtype: 'treatygrid',
+                store: 'storeTreaty',
+                buttonAlign: 'center',
+                fbar: [{
+                  text: '<< Назад',
+                  handler: this.onPrevClick
+                }, {
+                  text: 'Выбрать',
+                  disabled: true,
+                  itemId: 'dog',
+                  handler: this.onTreatiesSelectClick
+                }],
+                listeners: {
+                  selectionchange: function (t, selected) {
+                    this.down('#dog').setDisabled(selected.length === 0);
+                  }
+                }
+              }]
+            }]
+          }],
+          listeners: {
+            scope: this,
+            sel: function (t) {
+              //console.log(data);
+              this.tid = t;
+            }
+          }
+        }).show(this);
+      },
+
+      onPrevClick: function () {
+        var tp = this.up('tabpanel');
+        tp.getActiveTab().tab.setHidden(true);
+        tp.setActiveTab(0);
+        tp.getActiveTab().tab.setHidden(false);
+      },
+
+      onTreatiesSelectClick: function () {
+        console.log(this);
+        var sm = this.up('treatygrid').getSelectionModel().selected.getRange();
+        if (sm.length > 0) {
+          var t = {};
+          for (i = 0; i < sm.length; i++) {
+            t["id[" + i + "].ID"] = sm[i].get('TreatyID');
+          }
+          this.up('window').fireEvent('sel', t);
+          this.up('window').close();
+        }
+      },
+
+      onTreatiesClick: function () {
+        var sm = this.up('portgrid').getSelectionModel().selected.getRange();
+        if (sm.length > 0) {
+          var p = {};
+          for (i = 0; i < sm.length; i++) {
+            p["id[" + i + "]"] = sm[i].get('PortfolioID');
+          }
+        }
+        var tp = this.up('tabpanel');
+        var grid = tp.down('treatygrid');
+        grid.store.proxy.extraParams = p;
+        grid.store.load(function () {
+          tp.getActiveTab().tab.setHidden(true); tp.setActiveTab(1); tp.getActiveTab().tab.setHidden(false);
+        });
+      },
+
+      onRefreshClick: function () {
+        var me = this, store = me.store;
+        Ext.apply(store.proxy.extraParams, { IsGroupSec: this.down('#cbIsGroupSec').getValue() }, me.tid);
+        store.load(function (records, operation, success) {
+          if (success) {
+            me.columnManager.getHeaderByDataIndex('clName').setHidden(this.proxy.extraParams.IsGroupSec === true);
+            me.columnManager.getHeaderByDataIndex('trName').setHidden(this.proxy.extraParams.IsGroupSec === true);
+          }
+        });
+      }
+    });
+
+    Ext.define('Alloc.Win', {
+      extend: 'Ext.window.Window',
+      alias: 'widget.allocwin',
+
+      initComponent: function () {
+        Ext.apply(this, {
+          width: 600,
+          closeAction: 'hide',
+          modal: true,
+          buttonAlign: 'center',
+          items: [{
+            xtype: 'form',
+            border: false,
+            defaults: { anchor: '100%' },
+            bodyPadding: 10,
+            activeRecord: null,
+            fieldDefaults: {
+              labelAlign: 'left',
+              msgTarget: 'side'
+            },
+            items: [{
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              items: [{
+                name: 'secName',
+                fieldLabel: 'ЦБ',
+                xtype: 'textfield',
+                readOnly: true,
+                allowBlank: false,
+                flex: 1
+              }, {
+                xtype: 'button',
+                text: 'Выбрать',
+                scope: this,
+                handler: this.onShowSec
+              }, {
+                xtype: 'hidden',
+                name: 'SecurityID'
+              }]
+            }, {
+              xtype: 'radiogroup',
+              fieldLabel: 'Направление',
+              items: [{
+                boxLabel: 'Покупка',
+                name: 'Direction',
+                inputValue: '0'
+              }, {
+                boxLabel: 'Продажа',
+                name: 'Direction',
+                inputValue: '1'
+              }]
+            }],
+            dockedItems: [{
+              xtype: 'toolbar',
+              dock: 'bottom',
+              ui: 'footer',
+              items: ['->', {
+                iconCls: 'icon-save',
+                itemId: 'ok',
+                text: 'ОК',
+                disabled: true,
+                scope: this,
+                handler: this.onSave
+              }, {
+                  text: 'Отмена',
+                  scope: this,
+                  handler: this.onCancel
+                }]
+            }]
+          }]
+        });
+        this.callParent();
+      },
+
+      setActiveRecord: function (record) {
+        this.activeRecord = record;
+        if (record) {
+          this.down('#ok').enable();
+          this.down('form').getForm().reset(true).loadRecord(record);
+        } else {
+          this.down('#ok').disable();
+          this.down('form').getForm().reset();
+        }
+      },
+
+      onShowSec: function () {
+        var w = Ext.create('Ext.window.Window', {
+          scope: this,
+          title: 'ЦБ',
+          modal: true,
+          width: 1100,
+          height: window.innerHeight,
+          layout: 'fit',
+          items: [{
+            xtype: 'secgrid'
+          }],
+          listeners: {
+            scope: this,
+            sel: function (text, id, fid) {
+              var f = this.down('form').getForm();
+              f.findField('secName').setValue(text);
+              f.findField('SecurityID').setValue(id);
+              //f.findField('FundID').setValue(fid);
+              w.close();
+            }
+          }
+        }).show(this);
+      },
+
+      onSave: function () {
+        var active = this.activeRecord, form = this.down('form').getForm();
+        if (!active) {
+          return;
+        }
+        if (form.isValid()) {
+          //if (this.title === 'Добавить')
+          //  this.fireEvent('create', this, form.getValues(false, false, false, true));
+          //else {
+          //  form.updateRecord(active);
+          //  this.fireEvent('update');
+          //}
+          this.hide();
+        }
+      },
+
+      onCancel: function () {
+        this.hide();
+      }
+
+    });
+
+    Ext.define('SecGrid.Grid', {
+      extend: 'Ext.grid.Panel',
+      alias: 'widget.secgrid',
+      initComponent: function () {
+        Ext.apply(this, {
+          store: 'storeSec',
+          columns: [{
+            dataIndex: 'Name',
+            header: 'Наименование',
+            flex: 1
+          }, {
+            dataIndex: 'ISIN',
+            header: 'ISIN',
+            width: 120
+          }, {
+            dataIndex: 'RegNumber',
+            header: 'Рег.номер',
+            width: 120
+          }, {
+            dataIndex: 'SecType',
+            header: 'Тип'
+          }, {
+            dataIndex: 'DateEnd',
+            header: 'Погашение',
+            renderer: Ext.util.Format.dateRenderer('d.m.Y')
+            }, {
+              dataIndex: 'Issuer',
+              header: 'Эмитент',
+              flex: 1
+            }, {
+              dataIndex: 'IssuerINN',
+              header: 'ИНН'
+            }],
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'top',
+            items: [{
+              xtype: 'tbtext',
+              text: ' Поиск: '
+            }, {
+              xtype: 'textfield',
+              itemId: 'tfFind'
+            }, '-', {
+              iconCls: 'icon-refresh',
+              text: 'Обновить',
+              handler: this.onRefreshClick,
+              scope: this
+            }]
+          }],
+          viewConfig: {
+            enableTextSelection: true,
+            listeners: {
+              scope: this,
+              beforerender: {
+                fn: this.onRefreshClick
+              },
+              itemdblclick: {
+                fn: this.onSelect
+              }
+            }
+          }
+        });
+        this.callParent();
+      },
+
+      onRefreshClick: function () {
+        this.store.proxy.extraParams = {
+          filter: this.down('#tfFind').getValue()
+        };
+        this.store.load();
+      },
+
+      onSelect: function (view, record, item, index, e) {
+        this.up('window').fireEvent('sel', record.get('Name'), record.get('SecurityID'), record.get('NominalFundID'));
+        return false;
+      }
+    });
+
+    Ext.onReady(function () {
+      Ext.tip.QuickTipManager.init();
+      Ext.create('Ext.Viewport', {
+        layout: 'border',
+        items: [{
+          region: 'north',
+          border: false,
+          contentEl: 'header'
+        }, {
+          region: 'center',
+          xtype: 'restsgrid',
+          store: 'storeRests'
+        }]
+      });
+    });
+  </script>
+}
