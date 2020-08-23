@@ -644,7 +644,7 @@
         })
         this.callParent();
         this.getSelectionModel().on('selectionchange', this.onSelectChange, this);
-        this.on('itemdblclick', this.onRowDblClick, this);
+        this.on('itemdblclick', this.onRowDblClick, this) ;
       },
 
       onRefreshClick: function () {
