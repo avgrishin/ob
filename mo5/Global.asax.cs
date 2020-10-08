@@ -23,13 +23,19 @@ namespace MO5
 
     protected override IKernel CreateKernel()
     {
-      return new StandardKernel(new Areas.Code.Models.EnvoiModule(), new Models.HomeModule(), new Areas.Code.Models.ObjClsModule(), new Areas.Code.Models.InvestDeclModule(),
+      return new StandardKernel(
+        new Areas.Code.Models.EnvoiModule(), 
+        new Models.HomeModule(), 
+        new Areas.Code.Models.ObjClsModule(), 
+        new Areas.Code.Models.InvestDeclModule(),
         new Areas.Code.Models.JurModule(),
         new Areas.Code.Models.RegDocModule(),
         new Areas.Code.Models.EnregModule(),
         new Areas.Code.Models.RiskModule(),
         new Hubs.HubConnectionModule(),
-        new Areas.Code.Models.QuikModule()
+        new Areas.Code.Models.QuikModule(),
+        new Helpers.AppConfigProviderModule(),
+        new Areas.Code.Models.PaymentModule()
       );
 
 

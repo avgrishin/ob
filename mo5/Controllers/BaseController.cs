@@ -5,6 +5,7 @@ namespace MO5.Controllers
 {
   public class BaseController : Controller
   {
+    protected string UserName => User.Identity.Name;
     public static string RenderViewToString(ControllerContext context, string viewPath, object model = null, bool partial = false)
     {
       ViewEngineResult viewEngineResult = null;

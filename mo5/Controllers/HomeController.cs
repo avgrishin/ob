@@ -141,7 +141,7 @@ namespace MO5.Controllers
       return new ZipArchive(System.IO.File.OpenRead(filename), ZipArchiveMode.Read);
     }
 
-    public ActionResult GetRateMoex(DateTime? dt, string security = "ru000a0jxs34")
+    public ActionResult GetRateMoex(DateTime? dt, string security = "US4581401001")
     {
       //https://iss.moex.com/iss/securities.json?q=GAZP&iss.meta=on&securities.columns=shortname,name,emitent_inn,isin,secid,primary_boardid
       var wc = new WebClient { Encoding = Encoding.GetEncoding(1251) };
@@ -169,7 +169,7 @@ namespace MO5.Controllers
                 var m4 = r2.Match(s[1]);
                 if (m4.Success)
                 {
-                  response = wc.DownloadString($"https://iss.moex.com/iss/history/engines/stock/markets/{ (m3.Groups[1].Value == "stock_dr" || m3.Groups[1].Value == "stock_etf" ? "shares" : m3.Groups[1].Value.Substring(6, m3.Groups[1].Value.Length - 6)) }/boards/{m2.Groups[1].Value}/securities/{m4.Groups[1].Value}.csv?from={dt:yyyy-MM-dd}&till={dt:yyyy-MM-dd}");
+                  response = wc.DownloadString($"https://iss.moex.com/iss/history/engines/stock/markets/{ (m3.Groups[1].Value == "stock_dr" || m3.Groups[1].Value == "stock_etf" ? "shares" : m2.Groups[1].Value == "FQBR" ? "foreignshares" : m3.Groups[1].Value.Substring(6, m3.Groups[1].Value.Length - 6)) }/boards/{m2.Groups[1].Value}/securities/{m4.Groups[1].Value}.csv?from={dt:yyyy-MM-dd}&till={dt:yyyy-MM-dd}");
                   return File(Encoding.GetEncoding(1251).GetBytes(response.Replace("\n\n\n", "")), "application/text", "moex_b.csv");
                 }
               }

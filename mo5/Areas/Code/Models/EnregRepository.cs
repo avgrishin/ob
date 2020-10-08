@@ -595,13 +595,21 @@ namespace MO5.Areas.Code.Models
           var o = db.tEnregSteps.Find(id);
           if (o == null) return false;
           if (o.tEnregistrement1?.EnregTypeID != EnregTypeID) return false;
+          if (o.Step != 0)
+          {
+            var email = (from u in db.aspnet_Users
+                         where u.UserName == Login
+                         select u.aspnet_Membership.Email)
+                        .FirstOrDefault();
+            var edts = db.tEnregDTSteps.FirstOrDefault(p => p.DocTypeID == o.tEnregistrement1.DocTypeID && p.Step == o.Step && p.EmailTo.Contains(email));
+            if (edts == null) return false;
+          }
           var q2 = new tEnregistrementLog { EnregID = o.EnregID, EnregStepID = id, Login = Login, InDateTime = DateTime.Now };
           db.tEnregistrementLog.Add(q2);
           db.SaveChanges();
 
           if (!o.IsConfirmed)
           {
-
             o.IsConfirmed = true;
             o.InDateTimeC = DateTime.Now;
             o.UserName = Login;
@@ -733,7 +741,7 @@ namespace MO5.Areas.Code.Models
               join u in db.aspnet_Users on es.UserName equals u.UserName into _u
               from u in _u.DefaultIfEmpty()
               join m in db.aspnet_Membership on new { u.UserId, u.ApplicationId } equals new { m.UserId, m.ApplicationId } into _m
-              from m in _m.DefaultIfEmpty() 
+              from m in _m.DefaultIfEmpty()
               orderby dts.Step
               select new
               {

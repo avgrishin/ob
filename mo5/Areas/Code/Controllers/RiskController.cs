@@ -16,11 +16,11 @@ namespace MO5.Areas.Code.Controllers
 {
   public class RiskController : Controller
   {
-    public IRiskRepository riskRepository;
-
-    public RiskController(IRiskRepository _riskRepository)
+    private readonly IRiskRepository _riskRepository;
+    private readonly string _prefix = @"c:\data\Risk";
+    public RiskController(IRiskRepository riskRepository)
     {
-      riskRepository = _riskRepository;
+      _riskRepository = riskRepository;
     }
 
     public ActionResult Index()
@@ -37,7 +37,7 @@ namespace MO5.Areas.Code.Controllers
     [Authorize(Roles = "risk")]
     public ActionResult getLimitList(int TypeID)
     {
-      return new JsonnResult { Data = new { success = true, data = riskRepository.GetLimitList(TypeID) } };
+      return new JsonnResult { Data = new { success = true, data = _riskRepository.GetLimitList(TypeID) } };
     }
 
     [Authorize(Roles = "risk")]
@@ -45,7 +45,7 @@ namespace MO5.Areas.Code.Controllers
     {
       try
       {
-        return new JsonnResult { Data = new { success = true, data = riskRepository.AddLimitList(data) } };
+        return new JsonnResult { Data = new { success = true, data = _riskRepository.AddLimitList(data) } };
       }
       catch (Exception ex)
       {
@@ -58,7 +58,7 @@ namespace MO5.Areas.Code.Controllers
     {
       try
       {
-        return new JsonnResult { Data = new { success = true, data = riskRepository.UpdLimitList(data) } };
+        return new JsonnResult { Data = new { success = true, data = _riskRepository.UpdLimitList(data) } };
       }
       catch (Exception ex)
       {
@@ -71,7 +71,7 @@ namespace MO5.Areas.Code.Controllers
     {
       try
       {
-        return new JsonnResult { Data = new { success = true, data = riskRepository.DelLimitList(data) } };
+        return new JsonnResult { Data = new { success = true, data = _riskRepository.DelLimitList(data) } };
       }
       catch (Exception ex)
       {
@@ -82,13 +82,13 @@ namespace MO5.Areas.Code.Controllers
     [Authorize(Roles = "risk")]
     public ActionResult getEmitentList(string filter, string sort, string dir)
     {
-      return new JsonnResult { Data = new { success = true, data = riskRepository.GetEmitentList(filter, sort, dir) } };
+      return new JsonnResult { Data = new { success = true, data = _riskRepository.GetEmitentList(filter, sort, dir) } };
     }
 
     [Authorize(Roles = "risk")]
     public ActionResult getGrEmitList(string filter, string sort, string dir)
     {
-      return new JsonnResult { Data = new { success = true, data = riskRepository.GetFinInstGroupList(10, filter, sort, dir) } };
+      return new JsonnResult { Data = new { success = true, data = _riskRepository.GetFinInstGroupList(10, filter, sort, dir) } };
     }
 
     [Authorize(Roles = "risk")]
@@ -96,7 +96,7 @@ namespace MO5.Areas.Code.Controllers
     {
       try
       {
-        return new JsonnResult { Data = new { success = true, data = riskRepository.AddFinInstGroup(10, data) } };
+        return new JsonnResult { Data = new { success = true, data = _riskRepository.AddFinInstGroup(10, data) } };
       }
       catch (Exception ex)
       {
@@ -109,7 +109,7 @@ namespace MO5.Areas.Code.Controllers
     {
       try
       {
-        return new JsonnResult { Data = new { success = true, data = riskRepository.UpdFinInstGroup(10, data) } };
+        return new JsonnResult { Data = new { success = true, data = _riskRepository.UpdFinInstGroup(10, data) } };
       }
       catch (Exception ex)
       {
@@ -122,7 +122,7 @@ namespace MO5.Areas.Code.Controllers
     {
       try
       {
-        return new JsonnResult { Data = new { success = true, data = riskRepository.DelFinInstGroup(10, data) } };
+        return new JsonnResult { Data = new { success = true, data = _riskRepository.DelFinInstGroup(10, data) } };
       }
       catch (Exception ex)
       {
@@ -133,20 +133,20 @@ namespace MO5.Areas.Code.Controllers
     [Authorize(Roles = "risk")]
     public ActionResult addEmitGroupLink(int EmitentID, int GroupID)
     {
-      return new JsonnResult { Data = new { success = riskRepository.AddFinInstFinInstGroup(EmitentID, GroupID, 10) } };
+      return new JsonnResult { Data = new { success = _riskRepository.AddFinInstFinInstGroup(EmitentID, GroupID, 10) } };
     }
 
     [Authorize(Roles = "risk")]
     public ActionResult GepLimit1(int TypeID, DateTime? dt)
     {
-      return new JsonnResult { Data = new { success = riskRepository.RepLimit1(TypeID, dt) } };
+      return new JsonnResult { Data = new { success = _riskRepository.RepLimit1(TypeID, dt) } };
     }
 
     [Authorize(Roles = "risk")]
     public ActionResult RepLimit1(int TypeID, DateTime? dt)
     {
       var dtb = DateTime.Now;
-      var q = riskRepository.RepLimit1(TypeID, dt);
+      var q = _riskRepository.RepLimit1(TypeID, dt);
       var workbook = new XLWorkbook();
       var worksheet = workbook.Worksheets.Add("Контроль лимитов");
       var i = 1;
@@ -182,7 +182,7 @@ namespace MO5.Areas.Code.Controllers
     [Authorize(Roles = "risk")]
     public ActionResult exportLimitList(int TypeID)
     {
-      var q = riskRepository.GetLimitList(TypeID);
+      var q = _riskRepository.GetLimitList(TypeID);
       var workbook = new XLWorkbook();
       var worksheet = workbook.Worksheets.Add(TypeID == 1 ? "ДУ" : "СС");
       var i = 1;
@@ -248,7 +248,7 @@ namespace MO5.Areas.Code.Controllers
 
     public ActionResult SendRiskLimits()
     {
-      var dt = riskRepository.GetPrevWorkDate(DateTime.Today, 2);
+      var dt = _riskRepository.GetPrevWorkDate(DateTime.Today, 2);
       var wc = new WebClient { Credentials = CredentialCache.DefaultCredentials };
       var path = Url.Action("RepLimit1", "Risk", new { TypeID = 1, dt }, protocol: Request.Url.Scheme);
       var b = wc.DownloadData(path);
@@ -276,6 +276,74 @@ namespace MO5.Areas.Code.Controllers
         return new JsonnResult { Data = new { success = false, message = ex.Message } };
       }
       return new JsonnResult { Data = new { success = true } };
+    }
+
+    public ActionResult market()
+    {
+      return View();
+    }
+
+    public class f
+    {
+      public string Name { get; set; }
+    }
+    public ActionResult getFileList()
+    {
+      var d = Directory.GetFiles(_prefix, "*.xlsx", SearchOption.TopDirectoryOnly).Select(p => new f { Name = Path.GetFileName(p) });
+      return new JsonnResult { Data = new { data = d } };
+    }
+    [HttpPost]
+    public ActionResult FileUpload(HttpPostedFileBase fn)
+    {
+      if (fn != null && fn.ContentLength > 0)
+      {
+        var path = Path.Combine(_prefix, fn.FileName);
+        if (System.IO.File.Exists(path))
+          System.IO.File.Delete(path);
+        fn.SaveAs(path);
+        return new JsonnResult { Data = new { success = true, file = fn.FileName }, ContentType = "text/html" };
+      }
+      return new JsonnResult { Data = new { success = false, message = "Нет файла" }, ContentType = "text/html" };
+    }
+
+    public ActionResult delFile(List<f> data)
+    {
+      try
+      {
+        foreach(var d in data)
+        {
+          System.IO.File.Delete(Path.Combine(_prefix, d.Name));
+        }
+        return new JsonnResult { Data = new { success = true } };
+      }
+      catch (Exception ex)
+      {
+        return new JsonnResult { Data = new { success = false, message = ex.Message } };
+      }
+    }
+
+    [ActionName("excel")]
+    public ActionResult GetExcelFileStore(string FileName)
+    {
+      var workbook = new XLWorkbook(Path.Combine(_prefix, FileName));
+      var ws = workbook.Worksheets.FirstOrDefault();
+      var h = new List<string>();
+      var lastColumn = ws.Row(1).LastCellUsed().Address.ColumnNumber;
+      var lastRow = ws.Column(1).LastCellUsed().Address.RowNumber;
+      for (var i = 1; i <= lastColumn; i++)
+        h.Add(ws.Cell(1, i).GetString());
+      var d = new List<string[]>();
+      var row = new List<string>(lastColumn);
+      for (var r = 2; r <= lastRow; r++)
+      {
+        for (var c = 1; c <= lastColumn; c++)
+        {
+          row.Add(ws.Cell(r, c).GetFormattedString());
+        }
+        d.Add(row.ToArray());
+        row.Clear();
+      }
+      return new JsonnResult { Data = new { success = true, header = h.ToArray(), body = d.ToArray() } };
     }
   }
 }

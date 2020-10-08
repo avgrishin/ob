@@ -101,7 +101,7 @@
         <AssociationConnector Association="MiddleOfficeModel.FK_tModDeal_tSecurity" />
         <AssociationConnector Association="MiddleOfficeModel.FK_tModDeal_tTreaty" />
         <EntityTypeShape EntityType="MiddleOfficeModel.tEDO" Width="1.5" PointX="5.375" PointY="13.75" IsExpanded="false" />
-        <EntityTypeShape EntityType="MiddleOfficeModel.tEnregistrement" Width="1.5" PointX="12.875" PointY="26.125" />
+        <EntityTypeShape EntityType="MiddleOfficeModel.tEnregistrement" Width="1.5" PointX="12.875" PointY="26.125" IsExpanded="false" />
         <AssociationConnector Association="MiddleOfficeModel.FK_tEnregistrement_tObjClassifier" />
         <AssociationConnector Association="MiddleOfficeModel.FK_tEnregistrement_tObjClassifier1" />
         <EntityTypeShape EntityType="MiddleOfficeModel.tEnregDTSteps" Width="1.5" PointX="13" PointY="0.5" IsExpanded="false" />
@@ -133,6 +133,11 @@
         <AssociationConnector Association="MiddleOfficeModel.FK_tTreatyCode_tTreaty" />
         <EntityTypeShape EntityType="MiddleOfficeModel.tMyTreatyCode" Width="1.5" PointX="13.375" PointY="8.75" />
         <AssociationConnector Association="MiddleOfficeModel.FK_tMyTreatyCode_tTreatyCode" />
+        <EntityTypeShape EntityType="MiddleOfficeModel.tInvestDeclErr" Width="1.5" PointX="15.375" PointY="15.875" IsExpanded="false" />
+        <EntityTypeShape EntityType="MiddleOfficeModel.tODFaceAccs" Width="1.5" PointX="15.375" PointY="8.875" />
+        <EntityTypeShape EntityType="MiddleOfficeModel.tQUIK_UK_Deal" Width="1.5" PointX="8.375" PointY="20.875" IsExpanded="false" />
+        <EntityTypeShape EntityType="MiddleOfficeModel.tPayment" Width="1.5" PointX="3.375" PointY="22.875" IsExpanded="true" />
+        <EntityTypeShape EntityType="MiddleOfficeModel.tBank" Width="1.5" PointX="17.375" PointY="8.75" />
         </Diagram>
     </edmx:Diagrams>
   </edmx:Designer>

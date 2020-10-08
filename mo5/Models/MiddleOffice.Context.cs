@@ -92,6 +92,11 @@ namespace MO5.Models
         public virtual DbSet<tQuikDeal> tQuikDeal { get; set; }
         public virtual DbSet<tTreatyCode> tTreatyCode { get; set; }
         public virtual DbSet<tMyTreatyCode> tMyTreatyCode { get; set; }
+        public virtual DbSet<tInvestDeclErr> tInvestDeclErr { get; set; }
+        public virtual DbSet<tODFaceAccs> tODFaceAccs { get; set; }
+        public virtual DbSet<tQUIK_UK_Deal> tQUIK_UK_Deal { get; set; }
+        public virtual DbSet<tPayment> tPayment { get; set; }
+        public virtual DbSet<tBank> tBank { get; set; }
     
         public virtual ObjectResult<upCheckDecl_Result> upCheckDecl(Nullable<int> investDeclID, Nullable<System.DateTime> dt, Nullable<bool> withMD, Nullable<System.Guid> userID, Nullable<bool> errorsOnly, Nullable<bool> notSelect, Nullable<bool> saveResult)
         {

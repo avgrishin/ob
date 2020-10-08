@@ -1224,7 +1224,7 @@ namespace MO5.Areas.Code.Models
     {
       dt = dt ?? DateTime.Today;
       var q = from t in (from r in db.tODRests
-                         join t in db.tODTurns.Where(p => p.TDate >= dt) on r.ID equals t.RestID
+                         join t in db.tODTurns.Where(p => p.TDate > dt) on r.ID equals t.RestID
                          group new { r, t } by new { r.Reg3ID, r.ValueID } into grp
                          let s = grp.Sum(p => p.t.Type * p.t.Value)
                          where s != 0
@@ -1255,13 +1255,52 @@ namespace MO5.Areas.Code.Models
                 s.ISIN,
                 Num = (s.Class == 0 ? 1 * -1 : 1) * t.Num,
                 Course = sr.Course != null ? sr.Course : (s.Class == 4 && s.IssuerID == 12418022 ? s.Nominal : 0),
-                Qty = (s.Class == 0 ? 1 * -1 : 1) * t.Num * sr.Course != null ? sr.Course : (s.Class == 4 && s.IssuerID == 12418022 ? s.Nominal : 0),
+                Qty = (s.Class == 0 ? 1 * -1 : 1) * t.Num * (sr.Course != null ? sr.Course : (s.Class == 4 && s.IssuerID == 12418022 ? s.Nominal : 0)),
                 Coupon = sr.Coupon ?? 0,
                 SecurityID = (int?)s.SecurityID
               };
       return q.OrderBy(p => p.FinInstName).ThenBy(p => p.TreatyName).ThenBy(p => p.SecName);
     }
 
+    //public IEnumerable<dynamic> RepDU0Rest(DateTime? dt)
+    //{
+    //  dt = dt ?? DateTime.Today;
+    //  var q = from t in (from r in db.tODRests
+    //                     join t in db.tODTurns.Where(p => p.TDate > dt) on r.ID equals t.RestID
+    //                     group new { r, t } by new { r.Reg3ID, r.ValueID } into grp
+    //                     let s = grp.Sum(p => p.t.Type * p.t.Value)
+    //                     where s != 0
+    //                     select new
+    //                     {
+    //                       grp.Key.Reg3ID,
+    //                       grp.Key.ValueID,
+    //                       Num = grp.Sum(p => p.t.Type * p.t.Value)
+    //                     })
+    //          join tr in db.tTreaty on t.Reg3ID equals tr.TreatyID into _tr
+    //          from tr in _tr.DefaultIfEmpty()
+    //          join f in db.tFinInst on tr.FinInstID equals f.FinInstID into _f
+    //          from f in _f.DefaultIfEmpty()
+    //          join s in db.tSecurity on t.ValueID equals s.SecurityID into _s
+    //          from s in _s.DefaultIfEmpty()
+    //          join sr in db.tSecurityRate.Where(p => p.RateDate == dt) on t.ValueID equals sr.SecurityID into _sr
+    //          from sr in _sr.DefaultIfEmpty()
+    //          select new
+    //          {
+    //            TreatyID = t.Reg3ID,
+    //            TreatyName = tr.Name,
+    //            FinInstName = f.Name,
+    //            SecName = s.Name,
+    //            Issuer = e.Name,
+    //            INN = e.INN,
+    //            s.ISIN,
+    //            Num = (s.Class == 0 ? 1 * -1 : 1) * t.Num,
+    //            Course = sr.Course != null ? sr.Course : (s.Class == 4 && s.IssuerID == 12418022 ? s.Nominal : 0),
+    //            Qty = (s.Class == 0 ? 1 * -1 : 1) * t.Num * sr.Course != null ? sr.Course : (s.Class == 4 && s.IssuerID == 12418022 ? s.Nominal : 0),
+    //            Coupon = sr.Coupon ?? 0,
+    //            SecurityID = (int?)s.SecurityID
+    //          };
+    //  return q.OrderBy(p => p.FinInstName).ThenBy(p => p.TreatyName).ThenBy(p => p.SecName);
+    //}
     public IEnumerable<dynamic> AddPortfolio(List<tPortfolio> data)
     {
       db.tPortfolio.AddRange(data);

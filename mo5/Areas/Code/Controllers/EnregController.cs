@@ -18,15 +18,18 @@ namespace MO5.Areas.Code.Controllers
   {
     private readonly IEnregRepository enregRepository;
     private readonly int EnregTypeID = 0;
+    private readonly IConfigurationProvider _configProvider;
 
-    public EnregController(IEnregRepository _enregRepository)
+    public EnregController(IEnregRepository _enregRepository, IConfigurationProvider configProvider)
     {
       enregRepository = _enregRepository;
+      _configProvider = configProvider;
     }
 
-    public EnregController(IEnregRepository _enregRepository, int _enregTypeID)
+    public EnregController(IEnregRepository _enregRepository, IConfigurationProvider configProvider, int _enregTypeID)
     {
       enregRepository = _enregRepository;
+      _configProvider = configProvider;
       EnregTypeID = _enregTypeID;
     }
 
@@ -268,7 +271,7 @@ namespace MO5.Areas.Code.Controllers
         SmtpClient sc = new SmtpClient();
         MailMessage message = new MailMessage();
         message.From = new MailAddress(ConfigurationManager.AppSettings["EMailFrom"], "Внутренний контроль");
-        message.To.Add(((HttpContext.Request).Url.Authority.Contains("localhost")) ? "qbcontrol@qbfin.ru" : "marina.volodina@qbfin.ru,oleg.timohin@qbfin.ru,backoffice@qbfin.ru,Dmitriy.Levin@qbfin.ru,vlada.bytkovskay@qbfin.ru,stanislav.matyukhin@qbfin.ru,maria.kopylova@qbfin.ru,midoffice@qbfin.ru,elena.sazonova@qbfin.ru,marina.palyan@qbfin.ru,anastasia.koval@qbfin.ru,Jennifer.Shtraks@qbfin.ru");
+        message.To.Add(((HttpContext.Request).Url.Authority.Contains("localhost")) ? "qbcontrol@qbfin.ru" : "marina.volodina@qbfin.ru,oleg.timohin@qbfin.ru,backoffice@qbfin.ru,Dmitriy.Levin@qbfin.ru,vlada.bytkovskay@qbfin.ru,stanislav.matyukhin@qbfin.ru,maria.kopylova@qbfin.ru,midoffice@qbfin.ru,elena.sazonova@qbfin.ru,marina.palyan@qbfin.ru,anastasia.koval@qbfin.ru");
         //message.CC.Add("qbcontrol@qbfin.ru");
         message.Body = RenderViewToString(ControllerContext, "~/Areas/Code/Views/enreg/NotExecCourrier.cshtml", q);
         message.IsBodyHtml = true;
@@ -336,9 +339,8 @@ namespace MO5.Areas.Code.Controllers
     }
 
     [Authorize(Roles = "jrpk, jrpkc")]
-    public ActionResult enrcs(Guid? id, int a = 1)
+    public ActionResult enrcs(Guid? id)
     {
-      
       if (id.HasValue)
       {
         var es = enregRepository.GetEnregStep(id.Value);
@@ -372,12 +374,21 @@ namespace MO5.Areas.Code.Controllers
           if (enregRepository.enregConfirm(id, User.Identity.Name, EnregTypeID))
           {
             var stepId = enregRepository.GetEnregStepID(es.EnregID, EnregTypeID);
-            var res = enregRepository.enrCourriel(es.EnregID, Url.RouteUrl("Code_default", new { id = stepId }, Request.Url.Scheme), Url.RouteUrl("Code_default", new { action="GetFile", id = "" }, Request.Url.Scheme)/*(HttpContext.Request).Url.Authority*/, EnregTypeID);
+            var res = enregRepository.enrCourriel(es.EnregID, Url.RouteUrl("Code_default", new { id = stepId }, Request.Url.Scheme), Url.RouteUrl("Code_default", new { action = "GetFile", id = "" }, Request.Url.Scheme)/*(HttpContext.Request).Url.Authority*/, EnregTypeID);
+            return View("~/Areas/Code/Views/enreg/Confirm.cshtml");
+          }
+          else
+          {
+            ModelState.AddModelError("", "Вы не можете подтверждать поручение на данном шаге");
           }
         }
+        else
         return View("~/Areas/Code/Views/enreg/Confirm.cshtml");
       }
-      ModelState.AddModelError("", "Неверный указатель на поручение");
+      else
+      {
+        ModelState.AddModelError("", "Неверный указатель на поручение");
+      }
       var q = enregRepository.getEnreg(id, EnregTypeID);
       return View("~/Areas/Code/Views/enreg/ChgStep.cshtml", q);
     }

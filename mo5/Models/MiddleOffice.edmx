@@ -172,6 +172,15 @@
           <Property Name="Nominal" Type="float" />
           <Property Name="Value" Type="float" Nullable="false" />
         </EntityType>
+        <EntityType Name="tBank">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="BIC" Type="varchar" MaxLength="9" />
+          <Property Name="Name" Type="varchar" MaxLength="200" />
+          <Property Name="Account" Type="varchar" MaxLength="200" />
+        </EntityType>
         <EntityType Name="tConseil">
           <Key>
             <PropertyRef Name="ID" />
@@ -451,6 +460,28 @@
           <Property Name="Modify_UserID" Type="int" />
           <Property Name="InvestDeclTypeID" Type="int" />
         </EntityType>
+        <EntityType Name="tInvestDeclErr">
+          <Key>
+            <PropertyRef Name="lD" />
+          </Key>
+          <Property Name="lD" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="InvestDeclID" Type="int" Nullable="false" />
+          <Property Name="InvestDeclWhereID" Type="int" Nullable="false" />
+          <Property Name="FinInstID" Type="int" Nullable="false" />
+          <Property Name="Dt" Type="smalldatetime" />
+          <Property Name="FLAG_Group" Type="int" />
+          <Property Name="FLAG_Calculation" Type="int" />
+          <Property Name="numerator" Type="float" />
+          <Property Name="denominator" Type="float" />
+          <Property Name="coef" Type="float" />
+          <Property Name="StartValue" Type="float" />
+          <Property Name="StopValue" Type="float" />
+          <Property Name="SecurityID" Type="int" />
+          <Property Name="Num" Type="float" />
+          <Property Name="Course" Type="float" />
+          <Property Name="Qty" Type="float" />
+          <Property Name="coefS" Type="float" />
+        </EntityType>
         <EntityType Name="tInvestDeclGroupType">
           <Key>
             <PropertyRef Name="ID" />
@@ -593,6 +624,13 @@
           <Property Name="InDateTime" Type="datetime" Nullable="false" />
           <Property Name="UserName" Type="varchar" MaxLength="25" Nullable="false" />
         </EntityType>
+        <EntityType Name="tODFaceAccs">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" Nullable="false" />
+          <Property Name="BankID" Type="int" Nullable="false" />
+        </EntityType>
         <EntityType Name="tODRests">
           <Key>
             <PropertyRef Name="ID" />
@@ -617,6 +655,32 @@
           <Property Name="Type" Type="smallint" Nullable="false" />
           <Property Name="RestID" Type="int" Nullable="false" />
           <Property Name="Value" Type="float" />
+        </EntityType>
+        <EntityType Name="tPayment">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="PayDate" Type="smalldatetime" />
+          <Property Name="Number" Type="varchar" MaxLength="10" />
+          <Property Name="BICI" Type="varchar" MaxLength="9" />
+          <Property Name="RAccI" Type="varchar" MaxLength="20" />
+          <Property Name="BankI" Type="varchar" MaxLength="160" />
+          <Property Name="KAccI" Type="varchar" MaxLength="50" />
+          <Property Name="INNI" Type="varchar" MaxLength="12" />
+          <Property Name="KPPI" Type="varchar" MaxLength="9" />
+          <Property Name="NameI" Type="varchar" MaxLength="160" />
+          <Property Name="BICO" Type="varchar" MaxLength="9" />
+          <Property Name="RAccO" Type="varchar" MaxLength="20" />
+          <Property Name="BankO" Type="varchar" MaxLength="160" />
+          <Property Name="KAccO" Type="varchar" MaxLength="20" />
+          <Property Name="INNO" Type="varchar" MaxLength="12" />
+          <Property Name="KPPO" Type="varchar" MaxLength="9" />
+          <Property Name="NameO" Type="varchar" MaxLength="160" />
+          <Property Name="Amount" Type="money" />
+          <Property Name="Queue" Type="int" />
+          <Property Name="Reference" Type="varchar" MaxLength="210" />
+          <Property Name="InDateTime" Type="datetime" />
         </EntityType>
         <EntityType Name="tPortfolio">
           <Key>
@@ -654,6 +718,50 @@
           <Property Name="Name" Type="varchar" MaxLength="50" />
           <Property Name="IsDeleted" Type="bit" />
           <Property Name="ExternalID" Type="bigint" />
+        </EntityType>
+        <EntityType Name="tQUIK_UK_Deal">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="DealNumber" Type="bigint" Nullable="false" />
+          <Property Name="OrderNumber" Type="bigint" Nullable="false" />
+          <Property Name="DealDate" Type="datetime" />
+          <Property Name="DealTime" Type="datetime" Nullable="false" />
+          <Property Name="DealType" Type="varchar" MaxLength="255" />
+          <Property Name="InstrumentBrief" Type="varchar" MaxLength="50" Nullable="false" />
+          <Property Name="InstrumentCode" Type="varchar" MaxLength="12" Nullable="false" />
+          <Property Name="Operation" Type="varchar" MaxLength="50" Nullable="false" />
+          <Property Name="DealPrice" Type="float" Nullable="false" />
+          <Property Name="DealPriceRepoClose" Type="float" />
+          <Property Name="Quantity" Type="int" Nullable="false" />
+          <Property Name="ClientCode" Type="varchar" MaxLength="50" Nullable="false" />
+          <Property Name="Comment" Type="varchar" MaxLength="50" />
+          <Property Name="Capacity" Type="float" />
+          <Property Name="CommissionTS" Type="float" />
+          <Property Name="Yield" Type="float" />
+          <Property Name="NKD" Type="float" />
+          <Property Name="REPOVolume" Type="float" />
+          <Property Name="REPOSum" Type="float" />
+          <Property Name="REPOSrok" Type="int" />
+          <Property Name="REPOStavka" Type="float" />
+          <Property Name="REPOYield" Type="float" />
+          <Property Name="IsProcessed" Type="tinyint" />
+          <Property Name="DTProcessed" Type="smalldatetime" />
+          <Property Name="Partner" Type="varchar" MaxLength="50" />
+          <Property Name="OrgPartner" Type="varchar" MaxLength="50" />
+          <Property Name="SecurityBrief" Type="varchar" MaxLength="12" />
+          <Property Name="InitDiscount" Type="float" />
+          <Property Name="LowDiscount" Type="float" />
+          <Property Name="HiDiscount" Type="float" />
+          <Property Name="InDateTime" Type="datetime" />
+          <Property Name="Valuta" Type="varchar" MaxLength="10" />
+          <Property Name="ValutaRasch" Type="varchar" MaxLength="10" />
+          <Property Name="DateRasch" Type="smalldatetime" />
+          <Property Name="TradeDate" Type="smalldatetime" />
+          <Property Name="ISIN" Type="varchar" MaxLength="12" />
+          <Property Name="CodeClass" Type="varchar" MaxLength="10" />
+          <Property Name="UID" Type="int" />
         </EntityType>
         <EntityType Name="tQuikDeal">
           <Key>
@@ -1768,6 +1876,7 @@
           <EntitySet Name="aspnet_WebEvent_Events" EntityType="Self.aspnet_WebEvent_Events" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="taLib" EntityType="Self.taLib" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tAmortization" EntityType="Self.tAmortization" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="tBank" EntityType="Self.tBank" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tConseil" EntityType="Self.tConseil" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tConseilHoraire" EntityType="Self.tConseilHoraire" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tCoupon" EntityType="Self.tCoupon" Schema="dbo" store:Type="Tables" />
@@ -1786,6 +1895,7 @@
           <EntitySet Name="tFinInstFinInstGroupID" EntityType="Self.tFinInstFinInstGroupID" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tFinInstGroup" EntityType="Self.tFinInstGroup" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tInvestDecl" EntityType="Self.tInvestDecl" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="tInvestDeclErr" EntityType="Self.tInvestDeclErr" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tInvestDeclGroupType" EntityType="Self.tInvestDeclGroupType" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tInvestDeclLink" EntityType="Self.tInvestDeclLink" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tInvestDeclSec" EntityType="Self.tInvestDeclSec" Schema="dbo" store:Type="Tables" />
@@ -1796,12 +1906,15 @@
           <EntitySet Name="tMyTreatyCode" EntityType="Self.tMyTreatyCode" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tObjClassifier" EntityType="Self.tObjClassifier" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tObjClsRelation" EntityType="Self.tObjClsRelation" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="tODFaceAccs" EntityType="Self.tODFaceAccs" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tODRests" EntityType="Self.tODRests" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tODTurns" EntityType="Self.tODTurns" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="tPayment" EntityType="Self.tPayment" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tPortfolio" EntityType="Self.tPortfolio" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tPortfolioTreaty" EntityType="Self.tPortfolioTreaty" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tPortfolioType" EntityType="Self.tPortfolioType" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tQuik" EntityType="Self.tQuik" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="tQUIK_UK_Deal" EntityType="Self.tQUIK_UK_Deal" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tQuikDeal" EntityType="Self.tQuikDeal" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tQuikDealStatus" EntityType="Self.tQuikDealStatus" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tQuikDealType" EntityType="Self.tQuikDealType" Schema="dbo" store:Type="Tables" />
@@ -2428,6 +2541,11 @@
             <End Role="tTreatyCode" EntitySet="tTreatyCode" />
             <End Role="tMyTreatyCode" EntitySet="tMyTreatyCode" />
           </AssociationSet>
+          <EntitySet Name="tInvestDeclErr" EntityType="MiddleOfficeModel.tInvestDeclErr" />
+          <EntitySet Name="tODFaceAccs" EntityType="MiddleOfficeModel.tODFaceAccs" />
+          <EntitySet Name="tQUIK_UK_Deal" EntityType="MiddleOfficeModel.tQUIK_UK_Deal" />
+          <EntitySet Name="tPayment" EntityType="MiddleOfficeModel.tPayment" />
+          <EntitySet Name="tBank" EntityType="MiddleOfficeModel.tBank" />
           </EntityContainer>
         <EntityType Name="taLib">
           <Key>
@@ -4296,6 +4414,114 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <EntityType Name="tInvestDeclErr">
+          <Key>
+            <PropertyRef Name="lD" />
+          </Key>
+          <Property Name="lD" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="InvestDeclID" Type="Int32" Nullable="false" />
+          <Property Name="InvestDeclWhereID" Type="Int32" Nullable="false" />
+          <Property Name="FinInstID" Type="Int32" Nullable="false" />
+          <Property Name="Dt" Type="DateTime" Precision="0" />
+          <Property Name="FLAG_Group" Type="Int32" />
+          <Property Name="FLAG_Calculation" Type="Int32" />
+          <Property Name="numerator" Type="Double" />
+          <Property Name="denominator" Type="Double" />
+          <Property Name="coef" Type="Double" />
+          <Property Name="StartValue" Type="Double" />
+          <Property Name="StopValue" Type="Double" />
+          <Property Name="SecurityID" Type="Int32" />
+          <Property Name="Num" Type="Double" />
+          <Property Name="Course" Type="Double" />
+          <Property Name="Qty" Type="Double" />
+          <Property Name="coefS" Type="Double" />
+        </EntityType>
+        <EntityType Name="tODFaceAccs">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" />
+          <Property Name="BankID" Type="Int32" Nullable="false" />
+        </EntityType>
+        <EntityType Name="tQUIK_UK_Deal">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="DealNumber" Type="Int64" Nullable="false" />
+          <Property Name="OrderNumber" Type="Int64" Nullable="false" />
+          <Property Name="DealDate" Type="DateTime" Precision="3" />
+          <Property Name="DealTime" Type="DateTime" Nullable="false" Precision="3" />
+          <Property Name="DealType" Type="String" MaxLength="255" FixedLength="false" Unicode="false" />
+          <Property Name="InstrumentBrief" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="false" />
+          <Property Name="InstrumentCode" Type="String" Nullable="false" MaxLength="12" FixedLength="false" Unicode="false" />
+          <Property Name="Operation" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="false" />
+          <Property Name="DealPrice" Type="Double" Nullable="false" />
+          <Property Name="DealPriceRepoClose" Type="Double" />
+          <Property Name="Quantity" Type="Int32" Nullable="false" />
+          <Property Name="ClientCode" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="false" />
+          <Property Name="Comment" Type="String" MaxLength="50" FixedLength="false" Unicode="false" />
+          <Property Name="Capacity" Type="Double" />
+          <Property Name="CommissionTS" Type="Double" />
+          <Property Name="Yield" Type="Double" />
+          <Property Name="NKD" Type="Double" />
+          <Property Name="REPOVolume" Type="Double" />
+          <Property Name="REPOSum" Type="Double" />
+          <Property Name="REPOSrok" Type="Int32" />
+          <Property Name="REPOStavka" Type="Double" />
+          <Property Name="REPOYield" Type="Double" />
+          <Property Name="IsProcessed" Type="Byte" />
+          <Property Name="DTProcessed" Type="DateTime" Precision="0" />
+          <Property Name="Partner" Type="String" MaxLength="50" FixedLength="false" Unicode="false" />
+          <Property Name="OrgPartner" Type="String" MaxLength="50" FixedLength="false" Unicode="false" />
+          <Property Name="SecurityBrief" Type="String" MaxLength="12" FixedLength="false" Unicode="false" />
+          <Property Name="InitDiscount" Type="Double" />
+          <Property Name="LowDiscount" Type="Double" />
+          <Property Name="HiDiscount" Type="Double" />
+          <Property Name="InDateTime" Type="DateTime" Precision="3" />
+          <Property Name="Valuta" Type="String" MaxLength="10" FixedLength="false" Unicode="false" />
+          <Property Name="ValutaRasch" Type="String" MaxLength="10" FixedLength="false" Unicode="false" />
+          <Property Name="DateRasch" Type="DateTime" Precision="0" />
+          <Property Name="TradeDate" Type="DateTime" Precision="0" />
+          <Property Name="ISIN" Type="String" MaxLength="12" FixedLength="false" Unicode="false" />
+          <Property Name="CodeClass" Type="String" MaxLength="10" FixedLength="false" Unicode="false" />
+          <Property Name="UID" Type="Int32" />
+        </EntityType>
+        <EntityType Name="tPayment">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="PayDate" Type="DateTime" Precision="0" />
+          <Property Name="Number" Type="String" MaxLength="10" FixedLength="false" Unicode="false" />
+          <Property Name="BICI" Type="String" MaxLength="9" FixedLength="false" Unicode="false" />
+          <Property Name="RAccI" Type="String" MaxLength="20" FixedLength="false" Unicode="false" />
+          <Property Name="BankI" Type="String" MaxLength="160" FixedLength="false" Unicode="false" />
+          <Property Name="KAccI" Type="String" MaxLength="50" FixedLength="false" Unicode="false" />
+          <Property Name="INNI" Type="String" MaxLength="12" FixedLength="false" Unicode="false" />
+          <Property Name="KPPI" Type="String" MaxLength="9" FixedLength="false" Unicode="false" />
+          <Property Name="NameI" Type="String" MaxLength="160" FixedLength="false" Unicode="false" />
+          <Property Name="BICO" Type="String" MaxLength="9" FixedLength="false" Unicode="false" />
+          <Property Name="RAccO" Type="String" MaxLength="20" FixedLength="false" Unicode="false" />
+          <Property Name="BankO" Type="String" MaxLength="160" FixedLength="false" Unicode="false" />
+          <Property Name="KAccO" Type="String" MaxLength="20" FixedLength="false" Unicode="false" />
+          <Property Name="INNO" Type="String" MaxLength="12" FixedLength="false" Unicode="false" />
+          <Property Name="KPPO" Type="String" MaxLength="9" FixedLength="false" Unicode="false" />
+          <Property Name="NameO" Type="String" MaxLength="160" FixedLength="false" Unicode="false" />
+          <Property Name="Amount" Type="Decimal" Precision="19" Scale="4" />
+          <Property Name="Queue" Type="Int32" />
+          <Property Name="Reference" Type="String" MaxLength="210" FixedLength="false" Unicode="false" />
+          <Property Name="InDateTime" Type="DateTime" Precision="3" />
+        </EntityType>
+        <EntityType Name="tBank">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="BIC" Type="String" MaxLength="9" FixedLength="false" Unicode="false" />
+          <Property Name="Name" Type="String" MaxLength="200" FixedLength="false" Unicode="false" />
+          <Property Name="Account" Type="String" MaxLength="200" FixedLength="false" Unicode="false" />
+        </EntityType>
         </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
@@ -5382,6 +5608,119 @@
               <MappingFragment StoreEntitySet="tMyTreatyCode">
                 <ScalarProperty Name="TreatyCodeID" ColumnName="TreatyCodeID" />
                 <ScalarProperty Name="UserName" ColumnName="UserName" />
+                <ScalarProperty Name="ID" ColumnName="ID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="tInvestDeclErr">
+            <EntityTypeMapping TypeName="MiddleOfficeModel.tInvestDeclErr">
+              <MappingFragment StoreEntitySet="tInvestDeclErr">
+                <ScalarProperty Name="coefS" ColumnName="coefS" />
+                <ScalarProperty Name="Qty" ColumnName="Qty" />
+                <ScalarProperty Name="Course" ColumnName="Course" />
+                <ScalarProperty Name="Num" ColumnName="Num" />
+                <ScalarProperty Name="SecurityID" ColumnName="SecurityID" />
+                <ScalarProperty Name="StopValue" ColumnName="StopValue" />
+                <ScalarProperty Name="StartValue" ColumnName="StartValue" />
+                <ScalarProperty Name="coef" ColumnName="coef" />
+                <ScalarProperty Name="denominator" ColumnName="denominator" />
+                <ScalarProperty Name="numerator" ColumnName="numerator" />
+                <ScalarProperty Name="FLAG_Calculation" ColumnName="FLAG_Calculation" />
+                <ScalarProperty Name="FLAG_Group" ColumnName="FLAG_Group" />
+                <ScalarProperty Name="Dt" ColumnName="Dt" />
+                <ScalarProperty Name="FinInstID" ColumnName="FinInstID" />
+                <ScalarProperty Name="InvestDeclWhereID" ColumnName="InvestDeclWhereID" />
+                <ScalarProperty Name="InvestDeclID" ColumnName="InvestDeclID" />
+                <ScalarProperty Name="lD" ColumnName="lD" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="tODFaceAccs">
+            <EntityTypeMapping TypeName="MiddleOfficeModel.tODFaceAccs">
+              <MappingFragment StoreEntitySet="tODFaceAccs">
+                <ScalarProperty Name="BankID" ColumnName="BankID" />
+                <ScalarProperty Name="ID" ColumnName="ID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="tQUIK_UK_Deal">
+            <EntityTypeMapping TypeName="MiddleOfficeModel.tQUIK_UK_Deal">
+              <MappingFragment StoreEntitySet="tQUIK_UK_Deal">
+                <ScalarProperty Name="UID" ColumnName="UID" />
+                <ScalarProperty Name="CodeClass" ColumnName="CodeClass" />
+                <ScalarProperty Name="ISIN" ColumnName="ISIN" />
+                <ScalarProperty Name="TradeDate" ColumnName="TradeDate" />
+                <ScalarProperty Name="DateRasch" ColumnName="DateRasch" />
+                <ScalarProperty Name="ValutaRasch" ColumnName="ValutaRasch" />
+                <ScalarProperty Name="Valuta" ColumnName="Valuta" />
+                <ScalarProperty Name="InDateTime" ColumnName="InDateTime" />
+                <ScalarProperty Name="HiDiscount" ColumnName="HiDiscount" />
+                <ScalarProperty Name="LowDiscount" ColumnName="LowDiscount" />
+                <ScalarProperty Name="InitDiscount" ColumnName="InitDiscount" />
+                <ScalarProperty Name="SecurityBrief" ColumnName="SecurityBrief" />
+                <ScalarProperty Name="OrgPartner" ColumnName="OrgPartner" />
+                <ScalarProperty Name="Partner" ColumnName="Partner" />
+                <ScalarProperty Name="DTProcessed" ColumnName="DTProcessed" />
+                <ScalarProperty Name="IsProcessed" ColumnName="IsProcessed" />
+                <ScalarProperty Name="REPOYield" ColumnName="REPOYield" />
+                <ScalarProperty Name="REPOStavka" ColumnName="REPOStavka" />
+                <ScalarProperty Name="REPOSrok" ColumnName="REPOSrok" />
+                <ScalarProperty Name="REPOSum" ColumnName="REPOSum" />
+                <ScalarProperty Name="REPOVolume" ColumnName="REPOVolume" />
+                <ScalarProperty Name="NKD" ColumnName="NKD" />
+                <ScalarProperty Name="Yield" ColumnName="Yield" />
+                <ScalarProperty Name="CommissionTS" ColumnName="CommissionTS" />
+                <ScalarProperty Name="Capacity" ColumnName="Capacity" />
+                <ScalarProperty Name="Comment" ColumnName="Comment" />
+                <ScalarProperty Name="ClientCode" ColumnName="ClientCode" />
+                <ScalarProperty Name="Quantity" ColumnName="Quantity" />
+                <ScalarProperty Name="DealPriceRepoClose" ColumnName="DealPriceRepoClose" />
+                <ScalarProperty Name="DealPrice" ColumnName="DealPrice" />
+                <ScalarProperty Name="Operation" ColumnName="Operation" />
+                <ScalarProperty Name="InstrumentCode" ColumnName="InstrumentCode" />
+                <ScalarProperty Name="InstrumentBrief" ColumnName="InstrumentBrief" />
+                <ScalarProperty Name="DealType" ColumnName="DealType" />
+                <ScalarProperty Name="DealTime" ColumnName="DealTime" />
+                <ScalarProperty Name="DealDate" ColumnName="DealDate" />
+                <ScalarProperty Name="OrderNumber" ColumnName="OrderNumber" />
+                <ScalarProperty Name="DealNumber" ColumnName="DealNumber" />
+                <ScalarProperty Name="ID" ColumnName="ID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="tPayment">
+            <EntityTypeMapping TypeName="MiddleOfficeModel.tPayment">
+              <MappingFragment StoreEntitySet="tPayment">
+                <ScalarProperty Name="InDateTime" ColumnName="InDateTime" />
+                <ScalarProperty Name="Reference" ColumnName="Reference" />
+                <ScalarProperty Name="Queue" ColumnName="Queue" />
+                <ScalarProperty Name="Amount" ColumnName="Amount" />
+                <ScalarProperty Name="NameO" ColumnName="NameO" />
+                <ScalarProperty Name="KPPO" ColumnName="KPPO" />
+                <ScalarProperty Name="INNO" ColumnName="INNO" />
+                <ScalarProperty Name="KAccO" ColumnName="KAccO" />
+                <ScalarProperty Name="BankO" ColumnName="BankO" />
+                <ScalarProperty Name="RAccO" ColumnName="RAccO" />
+                <ScalarProperty Name="BICO" ColumnName="BICO" />
+                <ScalarProperty Name="NameI" ColumnName="NameI" />
+                <ScalarProperty Name="KPPI" ColumnName="KPPI" />
+                <ScalarProperty Name="INNI" ColumnName="INNI" />
+                <ScalarProperty Name="KAccI" ColumnName="KAccI" />
+                <ScalarProperty Name="BankI" ColumnName="BankI" />
+                <ScalarProperty Name="RAccI" ColumnName="RAccI" />
+                <ScalarProperty Name="BICI" ColumnName="BICI" />
+                <ScalarProperty Name="Number" ColumnName="Number" />
+                <ScalarProperty Name="PayDate" ColumnName="PayDate" />
+                <ScalarProperty Name="ID" ColumnName="ID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="tBank">
+            <EntityTypeMapping TypeName="MiddleOfficeModel.tBank">
+              <MappingFragment StoreEntitySet="tBank">
+                <ScalarProperty Name="Account" ColumnName="Account" />
+                <ScalarProperty Name="Name" ColumnName="Name" />
+                <ScalarProperty Name="BIC" ColumnName="BIC" />
                 <ScalarProperty Name="ID" ColumnName="ID" />
               </MappingFragment>
             </EntityTypeMapping>

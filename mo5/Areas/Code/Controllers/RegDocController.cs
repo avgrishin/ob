@@ -16,10 +16,12 @@ namespace MO5.Areas.Code.Controllers
   public class RegDocController : BaseController
   {
     public IRegDocRepository regdocRepository;
+    private readonly IConfigurationProvider _configProvider;
 
-    public RegDocController(IRegDocRepository _regdocRepository)
+    public RegDocController(IRegDocRepository _regdocRepository, IConfigurationProvider configProvider)
     {
       regdocRepository = _regdocRepository;
+      _configProvider = configProvider;
     }
 
     [Authorize(Roles = "regdoc")]
@@ -62,7 +64,7 @@ namespace MO5.Areas.Code.Controllers
         foreach (var i in q)
         {
           MailMessage message = new MailMessage();
-          message.From = new MailAddress(ConfigurationManager.AppSettings["EMailFrom"], "Внутренний контроль");
+          message.From = new MailAddress(_configProvider.GetValue<string>("EMailFrom"), "Внутренний контроль");
           if ((HttpContext.Request).Url.Authority.Contains("localhost") || i.Key == null)
           {
             message.To.Add("qbcontrol@qbfin.ru");

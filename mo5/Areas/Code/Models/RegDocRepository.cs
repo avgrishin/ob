@@ -16,7 +16,7 @@ namespace MO5.Areas.Code.Models
     IEnumerable<dynamic> addRegDoc(List<tRegDoc> data, string UserName);
     IEnumerable<dynamic> updRegDoc(List<tRegDoc> data, string UserName);
     bool delRegDoc(List<tRegDoc> data);
-    IEnumerable<IGrouping<string, RegDocEmail>> regdocCourriel(int? id, string host);
+    IGrouping<string, RegDocEmail>[] regdocCourriel(int? id, string host);
     tRegDoc getRegDoc(int? ID);
     IEnumerable<dynamic> getEMailList(string sort, string dir);
     IEnumerable<dynamic> GetObjClsByParent(int id);
@@ -32,8 +32,13 @@ namespace MO5.Areas.Code.Models
 
   public class RegDocRepository : IRegDocRepository
   {
-    private MiddleOfficeEntities db = new MiddleOfficeEntities() { };
+    private readonly MiddleOfficeEntities db = new MiddleOfficeEntities() { };
+    private readonly IConfigurationProvider _configProvider;
 
+    public RegDocRepository(IConfigurationProvider configProvider)
+    {
+      _configProvider = configProvider;
+    }
     public IEnumerable<dynamic> getRegDocList(int? OwnerID, string sort, string dir, DateTime? d1, DateTime? d2, int? type, Boolean? sd, bool? Direction)
     {
       var q1 = db.tRegDoc.Where(p => 1 == 1);
@@ -393,9 +398,10 @@ namespace MO5.Areas.Code.Models
       return null;
     }
 
-    public IEnumerable<IGrouping<string, RegDocEmail>> regdocCourriel(int? id, string host)
+    public IGrouping<string, RegDocEmail>[] regdocCourriel(int? id, string host)
     {
       var ql = db.taLib.Where(p => p.LConcept == 458622 && p.LParent == 458622).Select(p => new { p.LName, p.LName1 });
+
       var q = (from i in
                  ((from i in db.tRegDoc.Where(p => (id == null && p.ADate == null && p.IsAcquaintance == false && p.Direction == false) || p.Id == id)
                    join oc in db.tObjClassifier on i.TypeID equals oc.ObjClassifierID into oc_
@@ -432,7 +438,9 @@ namespace MO5.Areas.Code.Models
                      i.IsComplaint,
                      OrigUser = li.LName
                    }).ToList())
-               from e1 in ((i.EmailTo + "," + i.EmailCc + (i.InstOwnerID == 26187/*ИК*/? ",Dmitriy.Levin@qbfin.ru,stanislav.matyukhin@qbfin.ru,vlada.bytkovskay@qbfin.ru,anastasia.koval@qbfin.ru" : i.InstOwnerID == 26188/*УК*/? ",Dmitriy.Levin@qbfin.ru,stanislav.matyukhin@qbfin.ru,vlada.bytkovskay@qbfin.ru,anastasia.koval@qbfin.ru" : "")).Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries).AsQueryable()).Distinct()
+               from e1 in ((i.EmailTo + "," + i.EmailCc + (
+                i.InstOwnerID == 26187/*ИК*/? _configProvider.GetValue<string>("regdocCourrielIK") : 
+                i.InstOwnerID == 26188/*УК*/? _configProvider.GetValue<string>("regdocCourrielUK") : "")).Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries).AsQueryable()).Distinct()
                orderby i.TDate
                select new RegDocEmail
                {
@@ -462,7 +470,7 @@ namespace MO5.Areas.Code.Models
                  IsComplaint = i.IsComplaint,
                  OrigUser = i.OrigUser
                }).GroupBy(l => l.EmailTo);
-      return q;
+      return q.ToArray();
     }
 
     public tRegDoc getRegDoc(int? Id)
