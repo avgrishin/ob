@@ -97,6 +97,7 @@ namespace MO5.Models
         public virtual DbSet<tQUIK_UK_Deal> tQUIK_UK_Deal { get; set; }
         public virtual DbSet<tPayment> tPayment { get; set; }
         public virtual DbSet<tBank> tBank { get; set; }
+        public virtual DbSet<tRepoPrice> tRepoPrice { get; set; }
     
         public virtual ObjectResult<upCheckDecl_Result> upCheckDecl(Nullable<int> investDeclID, Nullable<System.DateTime> dt, Nullable<bool> withMD, Nullable<System.Guid> userID, Nullable<bool> errorsOnly, Nullable<bool> notSelect, Nullable<bool> saveResult)
         {

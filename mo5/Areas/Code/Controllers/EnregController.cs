@@ -271,7 +271,7 @@ namespace MO5.Areas.Code.Controllers
         SmtpClient sc = new SmtpClient();
         MailMessage message = new MailMessage();
         message.From = new MailAddress(ConfigurationManager.AppSettings["EMailFrom"], "Внутренний контроль");
-        message.To.Add(((HttpContext.Request).Url.Authority.Contains("localhost")) ? "qbcontrol@qbfin.ru" : "marina.volodina@qbfin.ru,oleg.timohin@qbfin.ru,backoffice@qbfin.ru,Dmitriy.Levin@qbfin.ru,vlada.bytkovskay@qbfin.ru,stanislav.matyukhin@qbfin.ru,maria.kopylova@qbfin.ru,midoffice@qbfin.ru,elena.sazonova@qbfin.ru,marina.palyan@qbfin.ru,anastasia.koval@qbfin.ru");
+        message.To.Add(((HttpContext.Request).Url.Authority.Contains("localhost")) ? "qbcontrol@qbfin.ru" : _configProvider.GetValue<string>("NotExecCourrier"));
         //message.CC.Add("qbcontrol@qbfin.ru");
         message.Body = RenderViewToString(ControllerContext, "~/Areas/Code/Views/enreg/NotExecCourrier.cshtml", q);
         message.IsBodyHtml = true;

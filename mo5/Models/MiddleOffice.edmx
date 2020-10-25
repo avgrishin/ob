@@ -912,6 +912,18 @@
           <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
           <Property Name="Name" Type="varchar" MaxLength="255" />
         </EntityType>
+        <EntityType Name="tRepoPrice">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="SecurityID" Type="int" Nullable="false" />
+          <Property Name="TreatyID" Type="int" Nullable="false" />
+          <Property Name="RDate" Type="smalldatetime" Nullable="false" />
+          <Property Name="Qty" Type="money" />
+          <Property Name="Num" Type="int" />
+          <Property Name="Price" Type="float" />
+        </EntityType>
         <EntityType Name="tRiskMap">
           <Key>
             <PropertyRef Name="ID" />
@@ -1924,6 +1936,7 @@
           <EntitySet Name="tReestr" EntityType="Self.tReestr" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tRegDoc" EntityType="Self.tRegDoc" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tRegDocContr" EntityType="Self.tRegDocContr" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="tRepoPrice" EntityType="Self.tRepoPrice" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tRiskMap" EntityType="Self.tRiskMap" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tRiskMapHoraire" EntityType="Self.tRiskMapHoraire" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tSecType" EntityType="Self.tSecType" Schema="dbo" store:Type="Tables" />
@@ -2546,6 +2559,7 @@
           <EntitySet Name="tQUIK_UK_Deal" EntityType="MiddleOfficeModel.tQUIK_UK_Deal" />
           <EntitySet Name="tPayment" EntityType="MiddleOfficeModel.tPayment" />
           <EntitySet Name="tBank" EntityType="MiddleOfficeModel.tBank" />
+          <EntitySet Name="tRepoPrice" EntityType="MiddleOfficeModel.tRepoPrice" />
           </EntityContainer>
         <EntityType Name="taLib">
           <Key>
@@ -4522,6 +4536,18 @@
           <Property Name="Name" Type="String" MaxLength="200" FixedLength="false" Unicode="false" />
           <Property Name="Account" Type="String" MaxLength="200" FixedLength="false" Unicode="false" />
         </EntityType>
+        <EntityType Name="tRepoPrice">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="SecurityID" Type="Int32" Nullable="false" />
+          <Property Name="TreatyID" Type="Int32" Nullable="false" />
+          <Property Name="RDate" Type="DateTime" Nullable="false" Precision="0" />
+          <Property Name="Qty" Type="Decimal" Precision="19" Scale="4" />
+          <Property Name="Num" Type="Int32" />
+          <Property Name="Price" Type="Double" />
+        </EntityType>
         </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
@@ -5721,6 +5747,19 @@
                 <ScalarProperty Name="Account" ColumnName="Account" />
                 <ScalarProperty Name="Name" ColumnName="Name" />
                 <ScalarProperty Name="BIC" ColumnName="BIC" />
+                <ScalarProperty Name="ID" ColumnName="ID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="tRepoPrice">
+            <EntityTypeMapping TypeName="MiddleOfficeModel.tRepoPrice">
+              <MappingFragment StoreEntitySet="tRepoPrice">
+                <ScalarProperty Name="Price" ColumnName="Price" />
+                <ScalarProperty Name="Num" ColumnName="Num" />
+                <ScalarProperty Name="Qty" ColumnName="Qty" />
+                <ScalarProperty Name="RDate" ColumnName="RDate" />
+                <ScalarProperty Name="TreatyID" ColumnName="TreatyID" />
+                <ScalarProperty Name="SecurityID" ColumnName="SecurityID" />
                 <ScalarProperty Name="ID" ColumnName="ID" />
               </MappingFragment>
             </EntityTypeMapping>

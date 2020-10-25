@@ -1244,6 +1244,8 @@ namespace MO5.Areas.Code.Models
               from e in _e.DefaultIfEmpty()
               join sr in db.tSecurityRate.Where(p => p.RateDate == dt) on t.ValueID equals sr.SecurityID into _sr
               from sr in _sr.DefaultIfEmpty()
+              join rp in db.tRepoPrice on new { dt, t.Reg3ID, t.ValueID } equals new {dt = (DateTime?)rp.RDate, Reg3ID = (int?)rp.TreatyID, ValueID = (int?)rp.SecurityID } into rp_
+              from rp in rp_.DefaultIfEmpty()
               select new
               {
                 TreatyID = t.Reg3ID,
@@ -1254,8 +1256,8 @@ namespace MO5.Areas.Code.Models
                 INN = e.INN,
                 s.ISIN,
                 Num = (s.Class == 0 ? 1 * -1 : 1) * t.Num,
-                Course = sr.Course != null ? sr.Course : (s.Class == 4 && s.IssuerID == 12418022 ? s.Nominal : 0),
-                Qty = (s.Class == 0 ? 1 * -1 : 1) * t.Num * (sr.Course != null ? sr.Course : (s.Class == 4 && s.IssuerID == 12418022 ? s.Nominal : 0)),
+                Course = sr.Course != null ? sr.Course : (s.Class == 4 && s.IssuerID == 12418022 ? s.Nominal : (rp.Price != null ? rp.Price : 0)),
+                Qty = (s.Class == 0 ? 1 * -1 : 1) * t.Num * (sr.Course != null ? sr.Course : (s.Class == 4 && s.IssuerID == 12418022 ? s.Nominal : (rp.Price != null ? rp.Price : 0))),
                 Coupon = sr.Coupon ?? 0,
                 SecurityID = (int?)s.SecurityID
               };

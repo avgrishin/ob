@@ -11,6 +11,7 @@ using System.Text;
 using System.Configuration;
 using System.Data.Entity.SqlServer;
 using System.Data.Entity.Infrastructure;
+using MO5.Helpers;
 
 namespace MO5.Areas.Code.Models
 {
@@ -72,8 +73,13 @@ namespace MO5.Areas.Code.Models
 
   public class EnvoiRepository : IEnvoiRepository
   {
-    private MiddleOfficeEntities db = new MiddleOfficeEntities() { };
+    private readonly MiddleOfficeEntities db = new MiddleOfficeEntities() { };
+    private readonly IConfigurationProvider _configProvider;
 
+    public EnvoiRepository(IConfigurationProvider configProvider)
+    {
+      _configProvider = configProvider;
+    }
     public IEnumerable<dynamic> getEnvoiList(int? OwnerID, int TypeID, bool? isAuto, bool? IsActive, string sort, string dir)
     {
       var q1 = db.tEnvoi.Where(p => p.InstOwnerID == OwnerID && p.IsAuto == isAuto && p.TypeID == TypeID);
@@ -824,10 +830,7 @@ namespace MO5.Areas.Code.Models
         SmtpClient sc = new SmtpClient();
         MailMessage message = new MailMessage();
         message.From = new MailAddress($"Внутренний контроль <{ConfigurationManager.AppSettings["EMailFrom"]}>");
-        message.To.Add("Dmitriy.Levin@qbfin.ru");
-        message.To.Add("stanislav.matyukhin@qbfin.ru");
-        message.To.Add("vlada.bytkovskay@qbfin.ru");
-        message.To.Add("anastasia.koval@qbfin.ru");
+        message.To.Add(_configProvider.GetValue<string>("conseilEnbCourriel"));
         //message.Bcc.Add(ConfigurationManager.AppSettings["EMailFrom"]);
         StringBuilder sb = new StringBuilder();
         sb.Append("<style>td, span, th {font-size:.8em;font-family: \"Segoe UI\", Verdana, Helvetica, Sans-Serif;vertical-align:top} span {font-style:italic} th{font-size:.7em}</style>");

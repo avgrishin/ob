@@ -16,11 +16,13 @@ namespace MO5.Areas.Code.Controllers
 {
   public class EnvoiController : BaseController
   {
-    public IEnvoiRepository envoiRepository;
+    private readonly IEnvoiRepository envoiRepository;
+    private readonly IConfigurationProvider _configProvider;
 
-    public EnvoiController(IEnvoiRepository _envoiRepository)
+    public EnvoiController(IEnvoiRepository _envoiRepository, IConfigurationProvider configProvider)
     {
       envoiRepository = _envoiRepository;
+      _configProvider = configProvider;
     }
 
     public ActionResult Index()
@@ -167,13 +169,13 @@ namespace MO5.Areas.Code.Controllers
     [Authorize(Roles = "envoi")]
     public ActionResult envoiExecCourriel(int id)
     {
-      return new JsonnResult { Data = new { success = envoiRepository.envoiExecCourriel(id, id == 26187/*ИК*/? " Dmitriy.Levin@qbfin.ru,stanislav.matyukhin@qbfin.ru,vlada.bytkovskay@qbfin.ru,anastasia.koval@qbfin.ru" : id == 26188/*УК*/? "Dmitriy.Levin@qbfin.ru,stanislav.matyukhin@qbfin.ru,vlada.bytkovskay@qbfin.ru,anastasia.koval@qbfin.ru" : "", (HttpContext.Request).Url.Authority) } };
+      return new JsonnResult { Data = new { success = envoiRepository.envoiExecCourriel(id, id == 26187/*ИК*/? _configProvider.GetValue<string>("envoiExecCourrielIK") : id == 26188/*УК*/? _configProvider.GetValue<string>("envoiExecCourrielUK") : "", (HttpContext.Request).Url.Authority) } };
     }
 
     [Authorize(Roles = "envoi")]
     public ActionResult envoiExecRiCourriel(int id)
     {
-      return new JsonnResult { Data = new { success = envoiRepository.envoiExecRiCourriel(id, id == 26187/*ИК*/? "Dmitriy.Levin@qbfin.ru,stanislav.matyukhin@qbfin.ru,vlada.bytkovskay@qbfin.ru,anastasia.koval@qbfin.ru" : id == 26188/*УК*/? "Dmitriy.Levin@qbfin.ru,stanislav.matyukhin@qbfin.ru,vlada.bytkovskay@qbfin.ru,anastasia.koval@qbfin.ru" : "", (HttpContext.Request).Url.Authority) } };
+      return new JsonnResult { Data = new { success = envoiRepository.envoiExecRiCourriel(id, id == 26187/*ИК*/? _configProvider.GetValue<string>("envoiExecRiCourrielIK") : id == 26188/*УК*/? _configProvider.GetValue<string>("envoiExecRiCourrielUK") : "", (HttpContext.Request).Url.Authority) } };
     }
 
     [Authorize(Roles = "envoi")]

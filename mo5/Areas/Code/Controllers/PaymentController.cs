@@ -63,5 +63,13 @@ namespace MO5.Areas.Code.Controllers
       ms.Position = 0;
       return File(ms.ToArray(), "application/text", $"Export{DateTime.Now:yyMMddhhmm}.dat");
     }
+
+    public ActionResult getPlatList()
+    {
+      var s = _configProvider.GetValue<string>("plat");
+      Response.ContentType = "application/json";
+      return Content("{ success: true, data: "+s+"}", "application/json");
+    }
+
   }
 }

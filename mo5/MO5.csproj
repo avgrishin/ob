@@ -554,6 +554,9 @@
     <Compile Include="Models\tRegDocContr.cs">
       <DependentUpon>MiddleOffice.tt</DependentUpon>
     </Compile>
+    <Compile Include="Models\tRepoPrice.cs">
+      <DependentUpon>MiddleOffice.tt</DependentUpon>
+    </Compile>
     <Compile Include="Models\tRiskMap.cs">
       <DependentUpon>MiddleOffice.tt</DependentUpon>
     </Compile>
@@ -651,6 +654,9 @@
     <Content Include="Content\bootstrap.min.css.map" />
     <Content Include="Content\bootstrap.css.map" />
     <Content Include="Areas\Code\Views\Risk\Market.cshtml" />
+    <None Include="Properties\PublishProfiles\FTPProfile.pubxml" />
+    <None Include="Properties\PublishProfiles\nashotel1 - FTP.pubxml" />
+    <None Include="Properties\PublishProfiles\nashotel1 - Web Deploy.pubxml" />
     <None Include="Scripts\jquery-3.4.1.intellisense.js" />
     <Content Include="Scripts\jquery-3.4.1.js" />
     <Content Include="Scripts\jquery-3.4.1.min.js" />

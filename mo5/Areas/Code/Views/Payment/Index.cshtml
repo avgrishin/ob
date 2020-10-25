@@ -102,7 +102,7 @@
         { name: 'NameO', type: 'string' },
         { name: 'Amount', type: 'number' },
         { name: 'Reference', type: 'string' },
-        { name: 'Queue', type: 'number', defaultValue: 1 },
+        { name: 'Queue', type: 'number', defaultValue: 5 },
       ]
     });
 
@@ -131,6 +131,38 @@
           encode: false
         },
         simpleSortMode: true
+      }
+    });
+
+    Ext.define('Plat', {
+      extend: 'Ext.data.Model',
+      idProperty: 'RAccI',
+      fields: [
+        { name: 'BICI', type: 'string' },
+        { name: 'RAccI', type: 'string' },
+        { name: 'BankI', type: 'string' },
+        { name: 'KAccI', type: 'string' },
+        { name: 'INNI', type: 'string' },
+        { name: 'KPPI', type: 'string' },
+        { name: 'NameI', type: 'string' }
+      ]
+    });
+
+    Ext.create('Ext.data.Store', {
+      storeId: 'storeplat',
+      autoLoad: true,
+      model: 'Plat',
+      proxy: {
+        type: 'ajax',
+        api: {
+          read: '@Url.Action("getPlatList")'
+        },
+        actionMethods: { read: 'GET' },
+        reader: {
+          type: 'json',
+          rootProperty: 'data',
+          totalProperty: 'totalCount'
+        }
       }
     });
 
@@ -170,8 +202,8 @@
               }, {
                 xtype: 'datefield',
                 name: 'PayDate',
-                  fieldLabel: 'Дата',
-                  labelWidth: 60,
+                fieldLabel: 'Дата',
+                labelWidth: 60,
                 width: 220,
                 margin: '0 10 0 0',
                 startDay: 1,
@@ -190,9 +222,37 @@
               },
               defaultType: 'textfield',
               bodyPadding: 10,
-                items: [{
-                  name: 'NameI'
-                }, {
+              items: [{
+                xtype: 'combo',
+                store: 'storeplat',
+                displayField: 'Text',
+                valueField: 'NameI',
+                queryMode: 'local',
+                tpl: Ext.create('Ext.XTemplate',
+                  '<ul class="x-list-plain"><tpl for=".">',
+                  '<li role="option" class="x-boundlist-item">{NameI} Банк {BankI} Р/с {RAccI}</li>',
+                  '</tpl></ul>'
+                ),
+                displayTpl: Ext.create('Ext.XTemplate',
+                  '<tpl for=".">',
+                  '{NameI} Банк {BankI} Р/с {RAccI}',
+                  '</tpl>'
+                ),
+                selectOnFocus: true,
+                listeners: {
+                  'select': function (combo, record) {
+                    var form = combo.up('form').getForm();
+                    Ext.Array.forEach(Object.keys(record.data), function (item, index) {
+                      form.findField(item).setValue(record.get(item));
+                    })
+                  }
+                }
+              }, {
+                name: 'NameI',
+                //fieldLabel: 'Наименование',
+                labelAlign: 'top',
+                readOnly: true
+              }, {
                 xtype: 'fieldcontainer',
                 layout: 'hbox',
                 anchor: '100%',
@@ -206,14 +266,16 @@
                   flex: 1,
                   margin: '0 10 0 0',
                   listeners: {
-                    'blur': this.onBlurBICI,
+                    //'blur': this.onBlurBICI,
                     scope: this
-                  }
+                  },
+                  readOnly: true
                 }, {
                   name: 'BankI',
-                    fieldLabel: 'Банк',
+                  fieldLabel: 'Банк',
                   maxLength: 50,
-                  flex: 2
+                  flex: 2,
+                  readOnly: true
                 }]
               }, {
                 xtype: 'fieldcontainer',
@@ -228,12 +290,14 @@
                   fieldLabel: 'Счет банка',
                   flex: 1,
                   margin: '0 10 0 0',
-                  regex: /^\d{20}$/
+                  regex: /^\d{20}$/,
+                  readOnly: true
                 }, {
                   name: 'RAccI',
                   fieldLabel: 'Расч. счет',
-                    flex: 1,
-                  regex: /^\d{20}$/
+                  flex: 1,
+                  regex: /^\d{20}$/,
+                  readOnly: true
                 }]
               }, {
                 xtype: 'fieldcontainer',
@@ -244,13 +308,15 @@
                   fieldLabel: 'ИНН',
                   labelWidth: 30,
                   labelAlign: 'left',
-                  regex: /^(\d{10}|\d{12})$/
+                  regex: /^(\d{10}|\d{12})$/,
+                  readOnly: true
                 }, {
                   xtype: 'textfield',
                   name: 'KPPI',
                   fieldLabel: 'КПП',
-                    labelWidth: 40,
-                    regex: /^\d{9}$/
+                  labelWidth: 40,
+                  regex: /^\d{9}$/,
+                  readOnly: true
                 }]
               }]
             }, {
@@ -265,9 +331,9 @@
               },
               defaultType: 'textfield',
               bodyPadding: 10,
-                items: [{
-                  name: 'NameO'
-                }, {
+              items: [{
+                name: 'NameO'
+              }, {
                 xtype: 'fieldcontainer',
                 layout: 'hbox',
                 anchor: '100%',
@@ -286,8 +352,8 @@
                   }
                 }, {
                   name: 'BankO',
-                    fieldLabel: 'Банк',
-                    maxLength: 50,
+                  fieldLabel: 'Банк',
+                  maxLength: 50,
                   flex: 2
                 }]
               }, {
@@ -307,8 +373,8 @@
                 }, {
                   name: 'RAccO',
                   fieldLabel: 'Расч. счет',
-                    flex: 1,
-                    regex: /^\d{20}$/
+                  flex: 1,
+                  regex: /^\d{20}$/
                 }]
               }, {
                 xtype: 'fieldcontainer',
@@ -324,7 +390,7 @@
                   xtype: 'textfield',
                   name: 'KPPO',
                   fieldLabel: 'КПП',
-                    labelWidth: 40,
+                  labelWidth: 40,
                   regex: /^\d{9}$/
                 }]
               }]
@@ -345,22 +411,22 @@
                 labelWidth: 50,
                 labelAlign: 'left'
               }, {
-                  xtype: 'numberfield',
-                  minValue: 0,
-                  name: 'Queue',
-                  fieldLabel: 'Очередность',
-                  allowBlank: false,
-                  hideTrigger: true,
-                  keyNavEnabled: false,
-                  mouseWheelEnabled: false,
-                  decimalPrecision: 0,
-                  decimalSeparator: '.',
-                  width: 130
-                }]
+                xtype: 'numberfield',
+                minValue: 0,
+                name: 'Queue',
+                fieldLabel: 'Очередность',
+                allowBlank: false,
+                hideTrigger: true,
+                keyNavEnabled: false,
+                mouseWheelEnabled: false,
+                decimalPrecision: 0,
+                decimalSeparator: '.',
+                width: 130
+              }]
             }, {
               name: 'Reference',
-                fieldLabel: 'Назначение',
-                labelAlign: 'top'
+              fieldLabel: 'Назначение',
+              labelAlign: 'top'
             }]
           }],
           buttons: [{
@@ -710,7 +776,7 @@
 
       onAddClick: function () {
         var rec = Ext.create('Payment', {
-          PayDate: Ext.Date.clearTime(new Date(), false), BICI: '044525505', BankI: 'НКО АО НРД', KAccI: '30105810345250000505'
+          PayDate: Ext.Date.clearTime(new Date(), false)
         });
         if (!this.wini) {
           this.onCreateWin();
