@@ -226,6 +226,15 @@
           <Property Name="DateEnd" Type="datetime" />
           <Property Name="DatePay" Type="datetime" />
         </EntityType>
+        <EntityType Name="tDepoTreaty">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="Number" Type="varchar" MaxLength="20" />
+          <Property Name="DateStart" Type="smalldatetime" />
+          <Property Name="Client" Type="varchar" MaxLength="255" />
+        </EntityType>
         <EntityType Name="tEDO">
           <Key>
             <PropertyRef Name="ID" />
@@ -255,6 +264,18 @@
           <Property Name="Step" Type="int" Nullable="false" />
           <Property Name="Name" Type="varchar" MaxLength="50" />
           <Property Name="EmailTo" Type="varchar(max)" />
+        </EntityType>
+        <EntityType Name="tEnregExt">
+          <Key>
+            <PropertyRef Name="EnregID" />
+          </Key>
+          <Property Name="EnregID" Type="int" Nullable="false" />
+          <Property Name="Comment1" Type="varchar(max)" />
+          <Property Name="Comment2" Type="varchar(max)" />
+          <Property Name="Comment3" Type="varchar(max)" />
+          <Property Name="Comment4" Type="varchar(max)" />
+          <Property Name="Comment5" Type="varchar(max)" />
+          <Property Name="InDateTime" Type="datetime" />
         </EntityType>
         <EntityType Name="tEnregistrement">
           <Key>
@@ -468,6 +489,7 @@
           <Property Name="InvestDeclID" Type="int" Nullable="false" />
           <Property Name="InvestDeclWhereID" Type="int" Nullable="false" />
           <Property Name="FinInstID" Type="int" Nullable="false" />
+          <Property Name="TreatyID" Type="int" />
           <Property Name="Dt" Type="smalldatetime" />
           <Property Name="FLAG_Group" Type="int" />
           <Property Name="FLAG_Calculation" Type="int" />
@@ -681,6 +703,7 @@
           <Property Name="Queue" Type="int" />
           <Property Name="Reference" Type="varchar" MaxLength="210" />
           <Property Name="InDateTime" Type="datetime" />
+          <Property Name="EnregID" Type="int" />
         </EntityType>
         <EntityType Name="tPortfolio">
           <Key>
@@ -809,6 +832,15 @@
           <Property Name="ID" Type="int" Nullable="false" />
           <Property Name="Name" Type="varchar" MaxLength="50" />
         </EntityType>
+        <EntityType Name="tQuikLimits">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="Curr" Type="varchar" MaxLength="3" />
+          <Property Name="Client" Type="varchar" MaxLength="20" />
+          <Property Name="Balance" Type="money" />
+        </EntityType>
         <EntityType Name="tQuikRate">
           <Key>
             <PropertyRef Name="ID" />
@@ -904,6 +936,8 @@
           <Property Name="Direction" Type="bit" Nullable="false" />
           <Property Name="ContrID" Type="int" />
           <Property Name="OrigUserID" Type="int" />
+          <Property Name="IsComplaintN" Type="bit" />
+          <Property Name="IsClientP" Type="bit" />
         </EntityType>
         <EntityType Name="tRegDocContr">
           <Key>
@@ -1028,6 +1062,7 @@
           <Property Name="DateStart" Type="smalldatetime" />
           <Property Name="DateFinish" Type="smalldatetime" />
           <Property Name="State" Type="int" />
+          <Property Name="DateInvest" Type="smalldatetime" />
         </EntityType>
         <EntityType Name="tTreatyCode">
           <Key>
@@ -1245,6 +1280,20 @@
             </Principal>
             <Dependent Role="tEnregDTSteps">
               <PropertyRef Name="DocTypeID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_tEnregExt_tEnregistrement">
+          <End Role="tEnregistrement" Type="Self.tEnregistrement" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="tEnregExt" Type="Self.tEnregExt" Multiplicity="0..1" />
+          <ReferentialConstraint>
+            <Principal Role="tEnregistrement">
+              <PropertyRef Name="ID" />
+            </Principal>
+            <Dependent Role="tEnregExt">
+              <PropertyRef Name="EnregID" />
             </Dependent>
           </ReferentialConstraint>
         </Association>
@@ -1553,6 +1602,18 @@
             </Principal>
             <Dependent Role="tMyTreatyCode">
               <PropertyRef Name="TreatyCodeID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_tPayment_tEnregistrement">
+          <End Role="tEnregistrement" Type="Self.tEnregistrement" Multiplicity="0..1" />
+          <End Role="tPayment" Type="Self.tPayment" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="tEnregistrement">
+              <PropertyRef Name="ID" />
+            </Principal>
+            <Dependent Role="tPayment">
+              <PropertyRef Name="EnregID" />
             </Dependent>
           </ReferentialConstraint>
         </Association>
@@ -1865,6 +1926,9 @@
           <Parameter Name="CreateDate" Type="datetime" Mode="In" />
           <Parameter Name="UserID" Type="uniqueidentifier" Mode="In" />
         </Function>
+        <Function Name="upGetEmptyTreaties" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="dt" Type="datetime" Mode="In" />
+        </Function>
         <Function Name="upGetRests" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
           <Parameter Name="dt" Type="smalldatetime" Mode="In" />
           <Parameter Name="withMD" Type="bit" Mode="In" />
@@ -1892,8 +1956,10 @@
           <EntitySet Name="tConseil" EntityType="Self.tConseil" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tConseilHoraire" EntityType="Self.tConseilHoraire" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tCoupon" EntityType="Self.tCoupon" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="tDepoTreaty" EntityType="Self.tDepoTreaty" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tEDO" EntityType="Self.tEDO" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tEnregDTSteps" EntityType="Self.tEnregDTSteps" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="tEnregExt" EntityType="Self.tEnregExt" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tEnregistrement" EntityType="Self.tEnregistrement" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tEnregistrementLog" EntityType="Self.tEnregistrementLog" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tEnregSteps" EntityType="Self.tEnregSteps" Schema="dbo" store:Type="Tables" />
@@ -1930,6 +1996,7 @@
           <EntitySet Name="tQuikDeal" EntityType="Self.tQuikDeal" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tQuikDealStatus" EntityType="Self.tQuikDealStatus" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tQuikDealType" EntityType="Self.tQuikDealType" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="tQuikLimits" EntityType="Self.tQuikLimits" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tQuikRate" EntityType="Self.tQuikRate" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tQuikUser" EntityType="Self.tQuikUser" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="tRate" EntityType="Self.tRate" Schema="dbo" store:Type="Tables" />
@@ -2007,6 +2074,10 @@
           <AssociationSet Name="FK_tEnregDTSteps_tObjClassifier" Association="Self.FK_tEnregDTSteps_tObjClassifier">
             <End Role="tObjClassifier" EntitySet="tObjClassifier" />
             <End Role="tEnregDTSteps" EntitySet="tEnregDTSteps" />
+          </AssociationSet>
+          <AssociationSet Name="FK_tEnregExt_tEnregistrement" Association="Self.FK_tEnregExt_tEnregistrement">
+            <End Role="tEnregistrement" EntitySet="tEnregistrement" />
+            <End Role="tEnregExt" EntitySet="tEnregExt" />
           </AssociationSet>
           <AssociationSet Name="FK_tEnregistrement_tEnregSteps" Association="Self.FK_tEnregistrement_tEnregSteps">
             <End Role="tEnregSteps" EntitySet="tEnregSteps" />
@@ -2107,6 +2178,10 @@
           <AssociationSet Name="FK_tMyTreatyCode_tTreatyCode" Association="Self.FK_tMyTreatyCode_tTreatyCode">
             <End Role="tTreatyCode" EntitySet="tTreatyCode" />
             <End Role="tMyTreatyCode" EntitySet="tMyTreatyCode" />
+          </AssociationSet>
+          <AssociationSet Name="FK_tPayment_tEnregistrement" Association="Self.FK_tPayment_tEnregistrement">
+            <End Role="tEnregistrement" EntitySet="tEnregistrement" />
+            <End Role="tPayment" EntitySet="tPayment" />
           </AssociationSet>
           <AssociationSet Name="FK_tPortfolio_tPortfolioType" Association="Self.FK_tPortfolio_tPortfolioType">
             <End Role="tPortfolioType" EntitySet="tPortfolioType" />
@@ -2408,15 +2483,6 @@
             <End Role="tSecurity" EntitySet="tSecurity" />
             <End Role="tSecurityRate" EntitySet="tSecurityRate" />
           </AssociationSet>
-          <FunctionImport Name="upCheckDecl" ReturnType="Collection(MiddleOfficeModel.upCheckDecl_Result)">
-            <Parameter Name="InvestDeclID" Mode="In" Type="Int32" />
-            <Parameter Name="dt" Mode="In" Type="DateTime" />
-            <Parameter Name="withMD" Mode="In" Type="Boolean" />
-            <Parameter Name="UserID" Mode="In" Type="Guid" />
-            <Parameter Name="ErrorsOnly" Mode="In" Type="Boolean" />
-            <Parameter Name="NotSelect" Mode="In" Type="Boolean" />
-            <Parameter Name="SaveResult" Mode="In" Type="Boolean" />
-          </FunctionImport>
           <AssociationSet Name="FK_tTreaty_tFinInst" Association="MiddleOfficeModel.FK_tTreaty_tFinInst">
             <End Role="tFinInst" EntitySet="tFinInst" />
             <End Role="tTreaty" EntitySet="tTreaty" />
@@ -2560,6 +2626,33 @@
           <EntitySet Name="tPayment" EntityType="MiddleOfficeModel.tPayment" />
           <EntitySet Name="tBank" EntityType="MiddleOfficeModel.tBank" />
           <EntitySet Name="tRepoPrice" EntityType="MiddleOfficeModel.tRepoPrice" />
+          <FunctionImport Name="upCheckDecl" ReturnType="Collection(MiddleOfficeModel.upCheckDecl_Result)">
+            <Parameter Name="InvestDeclID" Mode="In" Type="Int32" />
+            <Parameter Name="dt" Mode="In" Type="DateTime" />
+            <Parameter Name="withMD" Mode="In" Type="Boolean" />
+            <Parameter Name="UserID" Mode="In" Type="Guid" />
+            <Parameter Name="ErrorsOnly" Mode="In" Type="Boolean" />
+            <Parameter Name="NotSelect" Mode="In" Type="Boolean" />
+            <Parameter Name="SaveResult" Mode="In" Type="Boolean" />
+          </FunctionImport>
+          <AssociationSet Name="FK_tPayment_tEnregistrement" Association="MiddleOfficeModel.FK_tPayment_tEnregistrement">
+            <End Role="tEnregistrement" EntitySet="tEnregistrement" />
+            <End Role="tPayment" EntitySet="tPayment" />
+          </AssociationSet>
+          <AssociationSet Name="FK_tEnregistrement_tTreaty" Association="MiddleOfficeModel.FK_tEnregistrement_tTreaty">
+            <End Role="tTreaty" EntitySet="tTreaty" />
+            <End Role="tEnregistrement" EntitySet="tEnregistrement" />
+          </AssociationSet>
+          <EntitySet Name="tEnregExt" EntityType="MiddleOfficeModel.tEnregExt" />
+          <AssociationSet Name="FK_tEnregExt_tEnregistrement" Association="MiddleOfficeModel.FK_tEnregExt_tEnregistrement">
+            <End Role="tEnregistrement" EntitySet="tEnregistrement" />
+            <End Role="tEnregExt" EntitySet="tEnregExt" />
+          </AssociationSet>
+          <FunctionImport Name="upGetEmptyTreaties" ReturnType="Collection(MiddleOfficeModel.upGetEmptyTreaties_Result)">
+          <Parameter Name="dt" Mode="In" Type="DateTime" />
+          </FunctionImport>
+          <EntitySet Name="tQuikLimits" EntityType="MiddleOfficeModel.tQuikLimits" />
+          <EntitySet Name="tDepoTreaty" EntityType="MiddleOfficeModel.tDepoTreaty" />
           </EntityContainer>
         <EntityType Name="taLib">
           <Key>
@@ -3004,6 +3097,8 @@
           <Property Name="ContrID" Type="Int32" />
           <NavigationProperty Name="tRegDocContr" Relationship="MiddleOfficeModel.FK_tRegDoc_tRegDocContr" FromRole="tRegDoc" ToRole="tRegDocContr" />
           <Property Name="OrigUserID" Type="Int32" />
+          <Property Name="IsComplaintN" Type="Boolean" />
+          <Property Name="IsClientP" Type="Boolean" />
         </EntityType>
         <EntityType Name="tSecType">
           <Key>
@@ -3116,6 +3211,8 @@
           <Property Name="State" Type="Int32" />
           <NavigationProperty Name="tQuikDeal" Relationship="MiddleOfficeModel.FK_tQuikDeal_tTreaty" FromRole="tTreaty" ToRole="tQuikDeal" />
           <NavigationProperty Name="tTreatyCode" Relationship="MiddleOfficeModel.FK_tTreatyCode_tTreaty" FromRole="tTreaty" ToRole="tTreatyCode" />
+          <NavigationProperty Name="tEnregistrement" Relationship="MiddleOfficeModel.FK_tEnregistrement_tTreaty" FromRole="tTreaty" ToRole="tEnregistrement" />
+          <Property Name="DateInvest" Type="DateTime" Precision="0" />
         </EntityType>
         <Association Name="FK_tSecuritySecurityGroup_tSecurity">
           <End Type="MiddleOfficeModel.tSecurity" Role="tSecurity" Multiplicity="1" />
@@ -3804,27 +3901,6 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
-        <ComplexType Name="upCheckDecl_Result">
-          <Property Type="Int32" Name="FinInstID" Nullable="true" />
-          <Property Type="Int32" Name="InvestDeclWhereID" Nullable="true" />
-          <Property Type="String" Name="NameWhere" Nullable="true" MaxLength="255" />
-          <Property Type="String" Name="fiName" Nullable="true" MaxLength="255" />
-          <Property Type="Int32" Name="FLAG_Group" Nullable="true" />
-          <Property Type="String" Name="FGName" Nullable="true" MaxLength="255" />
-          <Property Type="Int32" Name="FLAG_Calculation" Nullable="true" />
-          <Property Type="Double" Name="numerator" Nullable="true" />
-          <Property Type="Double" Name="denominator" Nullable="true" />
-          <Property Type="Double" Name="coef" Nullable="true" />
-          <Property Type="Double" Name="StartValue" Nullable="true" />
-          <Property Type="Double" Name="StopValue" Nullable="true" />
-          <Property Type="Int32" Name="SecurityID" Nullable="true" />
-          <Property Type="String" Name="SecName" Nullable="true" MaxLength="255" />
-          <Property Type="Double" Name="Num" Nullable="true" />
-          <Property Type="Double" Name="Course" Nullable="true" />
-          <Property Type="Double" Name="Qty" Nullable="true" />
-          <Property Type="Double" Name="coefS" Nullable="true" />
-          <Property Type="Int32" Name="error" Nullable="false" />
-        </ComplexType>
         <Association Name="FK_tTreaty_tFinInst">
           <End Type="MiddleOfficeModel.tFinInst" Role="tFinInst" Multiplicity="0..1" />
           <End Type="MiddleOfficeModel.tTreaty" Role="tTreaty" Multiplicity="*" />
@@ -4004,6 +4080,9 @@
           <Property Name="UserName" Type="String" MaxLength="50" FixedLength="false" Unicode="false" />
           <Property Name="EnregTypeID" Type="Int32" Nullable="false" />
           <Property Name="FileNameG" Type="String" MaxLength="200" FixedLength="false" Unicode="false" />
+          <NavigationProperty Name="tPayment" Relationship="MiddleOfficeModel.FK_tPayment_tEnregistrement" FromRole="tEnregistrement" ToRole="tPayment" />
+          <NavigationProperty Name="tTreaty" Relationship="MiddleOfficeModel.FK_tEnregistrement_tTreaty" FromRole="tEnregistrement" ToRole="tTreaty" />
+          <NavigationProperty Name="tEnregExt" Relationship="MiddleOfficeModel.FK_tEnregExt_tEnregistrement" FromRole="tEnregistrement" ToRole="tEnregExt" />
         </EntityType>
         <Association Name="FK_tEnregistrement_tObjClassifier">
           <End Type="MiddleOfficeModel.tObjClassifier" Role="tObjClassifier" Multiplicity="0..1" />
@@ -4449,6 +4528,7 @@
           <Property Name="Course" Type="Double" />
           <Property Name="Qty" Type="Double" />
           <Property Name="coefS" Type="Double" />
+          <Property Name="TreatyID" Type="Int32" />
         </EntityType>
         <EntityType Name="tODFaceAccs">
           <Key>
@@ -4526,6 +4606,8 @@
           <Property Name="Queue" Type="Int32" />
           <Property Name="Reference" Type="String" MaxLength="210" FixedLength="false" Unicode="false" />
           <Property Name="InDateTime" Type="DateTime" Precision="3" />
+          <Property Name="EnregID" Type="Int32" />
+          <NavigationProperty Name="tEnregistrement" Relationship="MiddleOfficeModel.FK_tPayment_tEnregistrement" FromRole="tPayment" ToRole="tEnregistrement" />
         </EntityType>
         <EntityType Name="tBank">
           <Key>
@@ -4547,6 +4629,105 @@
           <Property Name="Qty" Type="Decimal" Precision="19" Scale="4" />
           <Property Name="Num" Type="Int32" />
           <Property Name="Price" Type="Double" />
+        </EntityType>
+        <ComplexType Name="upCheckDecl_Result">
+          <Property Type="DateTime" Name="Dt" Nullable="true" Precision="16" />
+          <Property Type="Int32" Name="FinInstID" Nullable="true" />
+          <Property Type="Int32" Name="InvestDeclWhereID" Nullable="true" />
+          <Property Type="String" Name="NameWhere" Nullable="true" MaxLength="255" />
+          <Property Type="String" Name="fiName" Nullable="true" MaxLength="255" />
+          <Property Type="String" Name="trName" Nullable="true" MaxLength="64" />
+          <Property Type="Int32" Name="FLAG_Group" Nullable="true" />
+          <Property Type="String" Name="FGName" Nullable="true" MaxLength="255" />
+          <Property Type="Int32" Name="FLAG_Calculation" Nullable="true" />
+          <Property Type="Double" Name="numerator" Nullable="true" />
+          <Property Type="Double" Name="denominator" Nullable="true" />
+          <Property Type="Double" Name="coef" Nullable="true" />
+          <Property Type="Double" Name="StartValue" Nullable="true" />
+          <Property Type="Double" Name="StopValue" Nullable="true" />
+          <Property Type="Int32" Name="SecurityID" Nullable="true" />
+          <Property Type="String" Name="SecName" Nullable="true" MaxLength="255" />
+          <Property Type="Double" Name="Num" Nullable="true" />
+          <Property Type="Double" Name="Course" Nullable="true" />
+          <Property Type="Double" Name="Qty" Nullable="true" />
+          <Property Type="Double" Name="coefS" Nullable="true" />
+          <Property Type="Int32" Name="error" Nullable="true" />
+          <Property Type="String" Name="tcCode" Nullable="false" />
+        </ComplexType>
+        <Association Name="FK_tPayment_tEnregistrement">
+          <End Type="MiddleOfficeModel.tEnregistrement" Role="tEnregistrement" Multiplicity="0..1" />
+          <End Type="MiddleOfficeModel.tPayment" Role="tPayment" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="tEnregistrement">
+              <PropertyRef Name="ID" />
+            </Principal>
+            <Dependent Role="tPayment">
+              <PropertyRef Name="EnregID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_tEnregistrement_tTreaty">
+          <End Type="MiddleOfficeModel.tTreaty" Role="tTreaty" Multiplicity="0..1" />
+          <End Type="MiddleOfficeModel.tEnregistrement" Role="tEnregistrement" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="tTreaty">
+              <PropertyRef Name="TreatyID" />
+            </Principal>
+            <Dependent Role="tEnregistrement">
+              <PropertyRef Name="TreatyID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityType Name="tEnregExt">
+          <Key>
+            <PropertyRef Name="EnregID" />
+          </Key>
+          <Property Name="EnregID" Type="Int32" Nullable="false" />
+          <Property Name="Comment1" Type="String" MaxLength="Max" FixedLength="false" Unicode="false" />
+          <Property Name="Comment2" Type="String" MaxLength="Max" FixedLength="false" Unicode="false" />
+          <Property Name="Comment3" Type="String" MaxLength="Max" FixedLength="false" Unicode="false" />
+          <Property Name="Comment4" Type="String" MaxLength="Max" FixedLength="false" Unicode="false" />
+          <Property Name="Comment5" Type="String" MaxLength="Max" FixedLength="false" Unicode="false" />
+          <Property Name="InDateTime" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="tEnregistrement" Relationship="MiddleOfficeModel.FK_tEnregExt_tEnregistrement" FromRole="tEnregExt" ToRole="tEnregistrement" />
+        </EntityType>
+        <Association Name="FK_tEnregExt_tEnregistrement">
+          <End Type="MiddleOfficeModel.tEnregistrement" Role="tEnregistrement" Multiplicity="1" />
+          <End Type="MiddleOfficeModel.tEnregExt" Role="tEnregExt" Multiplicity="0..1" />
+          <ReferentialConstraint>
+            <Principal Role="tEnregistrement">
+              <PropertyRef Name="ID" />
+            </Principal>
+            <Dependent Role="tEnregExt">
+              <PropertyRef Name="EnregID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <ComplexType Name="upGetEmptyTreaties_Result">
+          <Property Type="Int64" Name="r" Nullable="true" />
+          <Property Type="String" Name="Name" Nullable="true" MaxLength="64" />
+          <Property Type="DateTime" Name="DateStart" Nullable="true" Precision="16" />
+          <Property Type="DateTime" Name="DateFinish" Nullable="true" Precision="16" />
+          <Property Type="Double" Name="Qty" Nullable="true" />
+          <Property Type="DateTime" Name="DateInvest" Nullable="true" Precision="16" />
+        </ComplexType>
+        <EntityType Name="tQuikLimits">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="Curr" Type="String" MaxLength="3" FixedLength="false" Unicode="false" />
+          <Property Name="Client" Type="String" MaxLength="20" FixedLength="false" Unicode="false" />
+          <Property Name="Balance" Type="Decimal" Precision="19" Scale="4" />
+        </EntityType>
+        <EntityType Name="tDepoTreaty">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="Number" Type="String" MaxLength="20" FixedLength="false" Unicode="false" />
+          <Property Name="DateStart" Type="DateTime" Precision="0" />
+          <Property Name="Client" Type="String" MaxLength="255" FixedLength="false" Unicode="false" />
         </EntityType>
         </Schema>
     </edmx:ConceptualModels>
@@ -4834,6 +5015,8 @@
           <EntitySetMapping Name="tRegDoc">
             <EntityTypeMapping TypeName="MiddleOfficeModel.tRegDoc">
               <MappingFragment StoreEntitySet="tRegDoc">
+                <ScalarProperty Name="IsClientP" ColumnName="IsClientP" />
+                <ScalarProperty Name="IsComplaintN" ColumnName="IsComplaintN" />
                 <ScalarProperty Name="OrigUserID" ColumnName="OrigUserID" />
                 <ScalarProperty Name="ContrID" ColumnName="ContrID" />
                 <ScalarProperty Name="Direction" ColumnName="Direction" />
@@ -4909,6 +5092,7 @@
           <EntitySetMapping Name="tTreaty">
             <EntityTypeMapping TypeName="MiddleOfficeModel.tTreaty">
               <MappingFragment StoreEntitySet="tTreaty">
+                <ScalarProperty Name="DateInvest" ColumnName="DateInvest" />
                 <ScalarProperty Name="State" ColumnName="State" />
                 <ScalarProperty Name="DateFinish" ColumnName="DateFinish" />
                 <ScalarProperty Name="DateStart" ColumnName="DateStart" />
@@ -5304,31 +5488,6 @@
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>
-          <FunctionImportMapping FunctionImportName="upCheckDecl" FunctionName="MiddleOfficeModel.Store.upCheckDecl">
-            <ResultMapping>
-              <ComplexTypeMapping TypeName="MiddleOfficeModel.upCheckDecl_Result">
-                <ScalarProperty Name="FinInstID" ColumnName="FinInstID" />
-                <ScalarProperty Name="InvestDeclWhereID" ColumnName="InvestDeclWhereID" />
-                <ScalarProperty Name="NameWhere" ColumnName="NameWhere" />
-                <ScalarProperty Name="fiName" ColumnName="fiName" />
-                <ScalarProperty Name="FLAG_Group" ColumnName="FLAG_Group" />
-                <ScalarProperty Name="FGName" ColumnName="FGName" />
-                <ScalarProperty Name="FLAG_Calculation" ColumnName="FLAG_Calculation" />
-                <ScalarProperty Name="numerator" ColumnName="numerator" />
-                <ScalarProperty Name="denominator" ColumnName="denominator" />
-                <ScalarProperty Name="coef" ColumnName="coef" />
-                <ScalarProperty Name="StartValue" ColumnName="StartValue" />
-                <ScalarProperty Name="StopValue" ColumnName="StopValue" />
-                <ScalarProperty Name="SecurityID" ColumnName="SecurityID" />
-                <ScalarProperty Name="SecName" ColumnName="SecName" />
-                <ScalarProperty Name="Num" ColumnName="Num" />
-                <ScalarProperty Name="Course" ColumnName="Course" />
-                <ScalarProperty Name="Qty" ColumnName="Qty" />
-                <ScalarProperty Name="coefS" ColumnName="coefS" />
-                <ScalarProperty Name="error" ColumnName="error" />
-              </ComplexTypeMapping>
-            </ResultMapping>
-          </FunctionImportMapping>
           <EntitySetMapping Name="tModDeal">
             <EntityTypeMapping TypeName="MiddleOfficeModel.tModDeal">
               <MappingFragment StoreEntitySet="tModDeal">
@@ -5641,6 +5800,7 @@
           <EntitySetMapping Name="tInvestDeclErr">
             <EntityTypeMapping TypeName="MiddleOfficeModel.tInvestDeclErr">
               <MappingFragment StoreEntitySet="tInvestDeclErr">
+                <ScalarProperty Name="TreatyID" ColumnName="TreatyID" />
                 <ScalarProperty Name="coefS" ColumnName="coefS" />
                 <ScalarProperty Name="Qty" ColumnName="Qty" />
                 <ScalarProperty Name="Course" ColumnName="Course" />
@@ -5717,6 +5877,7 @@
           <EntitySetMapping Name="tPayment">
             <EntityTypeMapping TypeName="MiddleOfficeModel.tPayment">
               <MappingFragment StoreEntitySet="tPayment">
+                <ScalarProperty Name="EnregID" ColumnName="EnregID" />
                 <ScalarProperty Name="InDateTime" ColumnName="InDateTime" />
                 <ScalarProperty Name="Reference" ColumnName="Reference" />
                 <ScalarProperty Name="Queue" ColumnName="Queue" />
@@ -5760,6 +5921,78 @@
                 <ScalarProperty Name="RDate" ColumnName="RDate" />
                 <ScalarProperty Name="TreatyID" ColumnName="TreatyID" />
                 <ScalarProperty Name="SecurityID" ColumnName="SecurityID" />
+                <ScalarProperty Name="ID" ColumnName="ID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <FunctionImportMapping FunctionImportName="upCheckDecl" FunctionName="MiddleOfficeModel.Store.upCheckDecl">
+            <ResultMapping>
+              <ComplexTypeMapping TypeName="MiddleOfficeModel.upCheckDecl_Result">
+                <ScalarProperty Name="Dt" ColumnName="Dt" />
+                <ScalarProperty Name="FinInstID" ColumnName="FinInstID" />
+                <ScalarProperty Name="InvestDeclWhereID" ColumnName="InvestDeclWhereID" />
+                <ScalarProperty Name="NameWhere" ColumnName="NameWhere" />
+                <ScalarProperty Name="fiName" ColumnName="fiName" />
+                <ScalarProperty Name="trName" ColumnName="trName" />
+                <ScalarProperty Name="FLAG_Group" ColumnName="FLAG_Group" />
+                <ScalarProperty Name="FGName" ColumnName="FGName" />
+                <ScalarProperty Name="FLAG_Calculation" ColumnName="FLAG_Calculation" />
+                <ScalarProperty Name="numerator" ColumnName="numerator" />
+                <ScalarProperty Name="denominator" ColumnName="denominator" />
+                <ScalarProperty Name="coef" ColumnName="coef" />
+                <ScalarProperty Name="StartValue" ColumnName="StartValue" />
+                <ScalarProperty Name="StopValue" ColumnName="StopValue" />
+                <ScalarProperty Name="SecurityID" ColumnName="SecurityID" />
+                <ScalarProperty Name="SecName" ColumnName="SecName" />
+                <ScalarProperty Name="Num" ColumnName="Num" />
+                <ScalarProperty Name="Course" ColumnName="Course" />
+                <ScalarProperty Name="Qty" ColumnName="Qty" />
+                <ScalarProperty Name="coefS" ColumnName="coefS" />
+                <ScalarProperty Name="error" ColumnName="error" />
+              </ComplexTypeMapping>
+            </ResultMapping>
+          </FunctionImportMapping>
+          <EntitySetMapping Name="tEnregExt">
+            <EntityTypeMapping TypeName="MiddleOfficeModel.tEnregExt">
+              <MappingFragment StoreEntitySet="tEnregExt">
+                <ScalarProperty Name="InDateTime" ColumnName="InDateTime" />
+                <ScalarProperty Name="Comment5" ColumnName="Comment5" />
+                <ScalarProperty Name="Comment4" ColumnName="Comment4" />
+                <ScalarProperty Name="Comment3" ColumnName="Comment3" />
+                <ScalarProperty Name="Comment2" ColumnName="Comment2" />
+                <ScalarProperty Name="Comment1" ColumnName="Comment1" />
+                <ScalarProperty Name="EnregID" ColumnName="EnregID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <FunctionImportMapping FunctionImportName="upGetEmptyTreaties" FunctionName="MiddleOfficeModel.Store.upGetEmptyTreaties">
+            <ResultMapping>
+              <ComplexTypeMapping TypeName="MiddleOfficeModel.upGetEmptyTreaties_Result">
+                <ScalarProperty Name="r" ColumnName="r" />
+                <ScalarProperty Name="Name" ColumnName="Name" />
+                <ScalarProperty Name="DateStart" ColumnName="DateStart" />
+                <ScalarProperty Name="DateFinish" ColumnName="DateFinish" />
+                <ScalarProperty Name="Qty" ColumnName="Qty" />
+                <ScalarProperty Name="DateInvest" ColumnName="DateInvest" />
+              </ComplexTypeMapping>
+            </ResultMapping>
+          </FunctionImportMapping>
+          <EntitySetMapping Name="tQuikLimits">
+            <EntityTypeMapping TypeName="MiddleOfficeModel.tQuikLimits">
+              <MappingFragment StoreEntitySet="tQuikLimits">
+                <ScalarProperty Name="Balance" ColumnName="Balance" />
+                <ScalarProperty Name="Client" ColumnName="Client" />
+                <ScalarProperty Name="Curr" ColumnName="Curr" />
+                <ScalarProperty Name="ID" ColumnName="ID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="tDepoTreaty">
+            <EntityTypeMapping TypeName="MiddleOfficeModel.tDepoTreaty">
+              <MappingFragment StoreEntitySet="tDepoTreaty">
+                <ScalarProperty Name="Client" ColumnName="Client" />
+                <ScalarProperty Name="DateStart" ColumnName="DateStart" />
+                <ScalarProperty Name="Number" ColumnName="Number" />
                 <ScalarProperty Name="ID" ColumnName="ID" />
               </MappingFragment>
             </EntityTypeMapping>

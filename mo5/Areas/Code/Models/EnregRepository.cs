@@ -12,17 +12,19 @@ using MO5.Helpers;
 using System.Net.Mail;
 using System.Data.Entity.SqlServer;
 using System.Text;
+using DocumentFormat.OpenXml.Office2010.Drawing.Charts;
+using System.Threading.Tasks;
 
 namespace MO5.Areas.Code.Models
 {
   public interface IEnregRepository
   {
     IEnumerable<dynamic> GetEnregList(DateTime? d1, DateTime? d2, Boolean? sd, string UserName, bool? isOnlyMy, int EnregTypeID, string sort, string dir);
-    IEnumerable<dynamic> AddEnreg(List<tEnregistrement> data, int EnregTypeID, string UserName);
-    IEnumerable<dynamic> UpdEnreg(List<tEnregistrement> data, string UserName, bool? isOnlyMy, bool IsAdmin, int EnregTypeID);
+    Task<IEnumerable<dynamic>> AddEnreg(List<Enregistrement> data, int EnregTypeID, string UserName);
+    Task<IEnumerable<dynamic>> UpdEnreg(List<Enregistrement> data, string UserName, bool? isOnlyMy, bool IsAdmin, int EnregTypeID);
     bool DelEnreg(List<tEnregistrement> data, string UserName, bool? isOnlyMy, int EnregTypeID);
-    IEnumerable<dynamic> getTreaties(string q, int limit);
-    IEnumerable<dynamic> GetTreatyList(string filter, string sort, string dir);
+    IEnumerable<dynamic> getTreaties(string q, int EnregTypeID, int limit);
+    IEnumerable<dynamic> GetTreatyList(string filter, int EnregTypeID, string sort, string dir);
     IEnumerable<dynamic> getObjClsByParent(int id);
     IEnumerable<dynamic> GetDocType(int id, int EnregTypeID);
     IEnumerable<dynamic> GetUserList(int TypeID);
@@ -42,12 +44,14 @@ namespace MO5.Areas.Code.Models
     Guid? GetEnregStepID(int id, int EnregTypeID);
     Guid? AddZeroStep(int id, int EnregTypeID);
     tEnregSteps GetEnregStep(Guid id);
-    bool enregConfirm(Guid id, string Login, int EnregTypeID);
+    int enregConfirm(Guid id, string Login, int EnregTypeID);
     bool enrCourriel(int id, string url, string host, int EnregTypeID);
     dynamic getEnreg(Guid id, int EnregTypeID);
     IEnumerable<dynamic> GetEnreLog(int id, int EnregID);
     (bool IsAuth, string FileName) GetFileG(int id, string UserName, bool IsController);
-    IEnumerable<dynamic> GetEnregStepLog(int id);
+    IEnumerable<dynamic> GetEnregStepLog(int? id);
+    (bool success, string Message) AddPayment(List<int> id, DateTime date, int queue);
+    PaymentDoc GetPayment(int ID);
   }
 
   public class NotExecEnreg
@@ -75,18 +79,22 @@ namespace MO5.Areas.Code.Models
                join dts in db.tEnregDTSteps on new { e.DocTypeID, e.tEnregSteps.Step } equals new { DocTypeID = (int?)dts.DocTypeID, dts.Step } into _dts
                from dts in _dts.DefaultIfEmpty()
                join tr in db.tTreaty on e.TreatyID equals tr.TreatyID into tr_
-               from tr1 in tr_.DefaultIfEmpty()
-               join f in db.tFinInst on tr1.FinInstID equals f.FinInstID into f_
+               from tr in tr_.DefaultIfEmpty()
+               join f in db.tFinInst on tr.FinInstID equals f.FinInstID into f_
                from f in f_.DefaultIfEmpty()
+               join td in db.tDepoTreaty on e.TreatyID equals td.ID into td_
+               from td in td_.DefaultIfEmpty()
                from us in db.taLib.Where(a => a.LID == e.EmployeID).DefaultIfEmpty()
                from dt in db.tObjClassifier.Where(a => a.ObjClassifierID == e.DocTypeID).DefaultIfEmpty()
+               join p in db.tPayment on e.ID equals p.EnregID into p_
+               from p in p_.DefaultIfEmpty()
                select new
                {
                  id = e.ID,
                  e.Numero,
                  e.TreatyID,
-                 trNameBrief = tr1.Name.Trim(),
-                 ClnName = f.Name.Trim(),
+                 trNameBrief = e.EnregTypeID == 2 ? td.Number : tr.Name.Trim(),
+                 ClnName = e.EnregTypeID == 2 ? td.Client : f.Name.Trim(),
                  e.RecuDate,
                  e.Tm,
                  e.Original,
@@ -119,7 +127,32 @@ namespace MO5.Areas.Code.Models
                  Step = (int?)e.tEnregSteps.Step,
                  StepName = dts.Name,
                  IsStepConfirmed = (bool?)e.tEnregSteps.IsConfirmed,
-                 e.UserName
+                 e.UserName,
+                 Comment1 = e.tEnregExt.Comment1,
+                 Comment2 = e.tEnregExt.Comment2,
+                 Comment3 = e.tEnregExt.Comment3,
+                 Comment4 = e.tEnregExt.Comment4,
+                 Comment5 = e.tEnregExt.Comment5,
+                 PaymentID = (int?)p.ID,
+                 p.Amount,
+                 p.BankI,
+                 p.BankO,
+                 p.BICI,
+                 p.BICO,
+                 p.INNI,
+                 p.INNO,
+                 p.KAccI,
+                 p.KAccO,
+                 p.KPPI,
+                 p.KPPO,
+                 p.NameI,
+                 p.NameO,
+                 p.Number,
+                 p.PayDate,
+                 p.Queue,
+                 p.RAccI,
+                 p.RAccO,
+                 p.Reference
                });
       if (sd ?? false)
         q = q.Where(p => p.IsDone == false);
@@ -129,69 +162,172 @@ namespace MO5.Areas.Code.Models
       return q;
     }
 
-    public IEnumerable<dynamic> AddEnreg(List<tEnregistrement> data, int EnregTypeID, string UserName)
+    public async Task<IEnumerable<dynamic>> AddEnreg(List<Enregistrement> data, int EnregTypeID, string UserName)
     {
-      foreach (var e in data)
+      try
       {
-        e.EnregTypeID = EnregTypeID;
-        e.InDateTime = DateTime.Now;
-        e.UserName = UserName;
+        foreach (var e in data)
+        {
+          var en = new tEnregistrement
+          {
+            DateDoc = e.DateDoc,
+            DateFact = e.DateFact,
+            DateDog = e.DateDog,
+            DayDogTypeID = e.DayDogTypeID,
+            DaysDoc = e.DaysDoc,
+            DaysDog = e.DaysDog,
+            DaysFact = e.DaysFact,
+            DocDate = e.DocDate,
+            DocNum = e.DocNum,
+            DocTypeID = e.DocTypeID,
+            EmployeID = e.EmployeID,
+            EnregTypeID = EnregTypeID,
+            FileName = e.FileName,
+            FileNameD = e.FileNameD,
+            FileNameG = e.FileNameG,
+            FileNameO = e.FileNameO,
+            FullOut = e.FullOut,
+            InDateTime = DateTime.Now,
+            MethodID = e.MethodID,
+            Numero = e.Numero,
+            Original = e.Original,
+            Qty = e.Qty,
+            RecuDate = e.RecuDate,
+            Remarque = e.Remarque,
+            ScanCopy = e.ScanCopy,
+            StatusID = e.StatusID,
+            StepID = e.StepID,
+            Temps = e.Temps,
+            Tm = e.Tm,
+            TreatyID = e.TreatyID,
+            UserName = UserName
+          };
+          db.tEnregistrement.Add(en);
+          await db.SaveChangesAsync();
+          e.ID = en.ID;
+          if (EnregTypeID == 0)
+          {
+            var pmt = new tPayment
+            {
+              Amount = e.Amount,
+              BankI = e.BankI,
+              BankO = e.BankO,
+              BICI = e.BICI,
+              BICO = e.BICO,
+              EnregID = en.ID,
+              InDateTime = DateTime.Now,
+              INNI = e.INNI,
+              INNO = e.INNO,
+              KAccI = e.KAccI,
+              KAccO = e.KAccO,
+              KPPI = e.KPPI,
+              KPPO = e.KPPO,
+              NameI = e.NameI,
+              NameO = e.NameO,
+              Number = e.Number,
+              PayDate = e.PayDate,
+              Queue = e.Queue,
+              RAccI = e.RAccI,
+              RAccO = e.RAccO,
+              Reference = e.Reference
+            };
+            db.tPayment.Add(pmt);
+            await db.SaveChangesAsync();
+          }
+          else if (EnregTypeID == 3)
+          {
+            var ee = new tEnregExt { EnregID = en.ID, Comment1 = e.Comment1, Comment2 = e.Comment2, Comment3 = e.Comment3, Comment4 = e.Comment4, Comment5 = e.Comment5 };
+            db.tEnregExt.Add(ee);
+            await db.SaveChangesAsync();
+          }
+        }
+        var ids = data.Select(p => p.ID);
+        var q = from e in db.tEnregistrement.AsNoTracking().Where(p => ids.Contains(p.ID))
+                join dts in db.tEnregDTSteps on new { e.DocTypeID, e.tEnregSteps.Step } equals new { DocTypeID = (int?)dts.DocTypeID, dts.Step } into _dts
+                from dts in _dts.DefaultIfEmpty()
+                join tr in db.tTreaty on e.TreatyID equals tr.TreatyID into tr_
+                from tr in tr_.DefaultIfEmpty()
+                join f in db.tFinInst on tr.FinInstID equals f.FinInstID into f_
+                from f in f_.DefaultIfEmpty()
+                join td in db.tDepoTreaty on e.TreatyID equals td.ID into td_
+                from td in td_.DefaultIfEmpty()
+                from us in db.taLib.Where(a => a.LID == e.EmployeID).DefaultIfEmpty()
+                from dt in db.tObjClassifier.Where(a => a.ObjClassifierID == e.DocTypeID).DefaultIfEmpty()
+                join p in db.tPayment on e.ID equals p.EnregID into p_
+                from p in p_.DefaultIfEmpty()
+                select new
+                {
+                  id = e.ID,
+                  e.Numero,
+                  e.TreatyID,
+                  trNameBrief = e.EnregTypeID == 2 ? td.Number : tr.Name.Trim(),
+                  ClnName = e.EnregTypeID == 2 ? td.Client : f.Name.Trim(),
+                  e.RecuDate,
+                  e.Tm,
+                  e.Original,
+                  e.ScanCopy,
+                  e.FullOut,
+                  IsShowFO = dt.RequiredFlag == 1,
+                  e.DocTypeID,
+                  DTName = dt.Name,
+                  e.EmployeID,
+                  EmployeNom = us.LName,
+                  e.Remarque,
+                  e.MethodID,
+                  Method = e.tObjClassifier1.Name,
+                  e.StatusID,
+                  Status = e.tObjClassifier.Name,
+                  IsDone = e.tObjClassifier.Comment == "1" || (e.tObjClassifier.Comment == "2" && (e.Remarque != null || e.FileNameD != null)),
+                  e.DocNum,
+                  e.DayDogTypeID,
+                  e.DaysDog,
+                  e.DaysFact,
+                  e.FileName,
+                  e.FileNameO,
+                  e.FileNameD,
+                  e.FileNameG,
+                  e.Qty,
+                  DateDog = e.DayDogTypeID == 1 ? UserDbFunction.ufAddWorkDate(e.RecuDate, e.DaysDog) : SqlFunctions.DateAdd("d", e.DaysDog, e.RecuDate),
+                  e.DateFact,
+                  DayDogType = e.DayDogTypeID == 1 ? "рабочие" : "календарные",
+                  Step = (int?)e.tEnregSteps.Step,
+                  IsStepConfirmed = (bool?)e.tEnregSteps.IsConfirmed,
+                  e.UserName,
+                  Comment1 = e.tEnregExt.Comment1,
+                  Comment2 = e.tEnregExt.Comment2,
+                  Comment3 = e.tEnregExt.Comment3,
+                  Comment4 = e.tEnregExt.Comment4,
+                  Comment5 = e.tEnregExt.Comment5,
+                  PaymentID = (int?)p.ID,
+                  p.Amount,
+                  p.BankI,
+                  p.BankO,
+                  p.BICI,
+                  p.BICO,
+                  p.INNI,
+                  p.INNO,
+                  p.KAccI,
+                  p.KAccO,
+                  p.KPPI,
+                  p.KPPO,
+                  p.NameI,
+                  p.NameO,
+                  p.Number,
+                  p.PayDate,
+                  p.Queue,
+                  p.RAccI,
+                  p.RAccO,
+                  p.Reference
+                };
+        return q;
       }
-      db.tEnregistrement.AddRange(data);
-      db.SaveChanges();
-
-      var ids = data.Select(p => p.ID);
-      var q = from e in db.tEnregistrement.AsNoTracking().Where(p => ids.Contains(p.ID))
-              join dts in db.tEnregDTSteps on new { e.DocTypeID, e.tEnregSteps.Step } equals new { DocTypeID = (int?)dts.DocTypeID, dts.Step } into _dts
-              from dts in _dts.DefaultIfEmpty()
-              join tr in db.tTreaty on e.TreatyID equals tr.TreatyID into tr_
-              from tr1 in tr_.DefaultIfEmpty()
-              join f in db.tFinInst on tr1.FinInstID equals f.FinInstID into f_
-              from f in f_.DefaultIfEmpty()
-              from us in db.taLib.Where(a => a.LID == e.EmployeID).DefaultIfEmpty()
-              from dt in db.tObjClassifier.Where(a => a.ObjClassifierID == e.DocTypeID).DefaultIfEmpty()
-              select new
-              {
-                id = e.ID,
-                e.Numero,
-                e.TreatyID,
-                trNameBrief = tr1.Name.Trim(),
-                ClnName = f.Name.Trim(),
-                e.RecuDate,
-                e.Tm,
-                e.Original,
-                e.ScanCopy,
-                e.FullOut,
-                IsShowFO = dt.RequiredFlag == 1,
-                e.DocTypeID,
-                DTName = dt.Name,
-                e.EmployeID,
-                EmployeNom = us.LName,
-                e.Remarque,
-                e.MethodID,
-                Method = e.tObjClassifier1.Name,
-                e.StatusID,
-                Status = e.tObjClassifier.Name,
-                IsDone = e.tObjClassifier.Comment == "1" || (e.tObjClassifier.Comment == "2" && (e.Remarque != null || e.FileNameD != null)),
-                e.DocNum,
-                e.DayDogTypeID,
-                e.DaysDog,
-                e.DaysFact,
-                e.FileName,
-                e.FileNameO,
-                e.FileNameD,
-                e.FileNameG,
-                e.Qty,
-                DateDog = e.DayDogTypeID == 1 ? UserDbFunction.ufAddWorkDate(e.RecuDate, e.DaysDog) : SqlFunctions.DateAdd("d", e.DaysDog, e.RecuDate),
-                e.DateFact,
-                DayDogType = e.DayDogTypeID == 1 ? "рабочие" : "календарные",
-                Step = (int?)e.tEnregSteps.Step,
-                IsStepConfirmed = (bool?)e.tEnregSteps.IsConfirmed
-              };
-      return q;
+      catch (Exception ex)
+      {
+        throw ex;
+      }
     }
 
-    public IEnumerable<dynamic> UpdEnreg(List<tEnregistrement> data, string UserName, bool? isOnlyMy, bool IsAdmin, int EnregTypeID)
+    public async Task<IEnumerable<dynamic>> UpdEnreg(List<Enregistrement> data, string UserName, bool? isOnlyMy, bool IsAdmin, int EnregTypeID)
     {
       foreach (var e in data)
       {
@@ -220,8 +356,8 @@ namespace MO5.Areas.Code.Models
               if (IsAdmin)
               {
                 q1.RecuDate = e.RecuDate;
-                q1.Tm = e.Tm;
               }
+              q1.Tm = e.Tm;
               q1.Remarque = e.Remarque;
               q1.ScanCopy = e.ScanCopy;
               q1.FullOut = e.FullOut;
@@ -230,7 +366,82 @@ namespace MO5.Areas.Code.Models
               q1.MethodID = e.MethodID;
               q1.StatusID = e.StatusID;
               q1.DocNum = e.DocNum;
-              db.SaveChanges();
+              await db.SaveChangesAsync();
+              if (EnregTypeID == 0)
+              {
+                var q2 = db.tPayment.FirstOrDefault(p => p.EnregID == e.ID);
+                if (q2 is null)
+                {
+                  var pmt = new tPayment
+                  {
+                    Amount = e.Amount,
+                    BankI = e.BankI,
+                    BankO = e.BankO,
+                    BICI = e.BICI,
+                    BICO = e.BICO,
+                    EnregID = e.ID,
+                    InDateTime = DateTime.Now,
+                    INNI = e.INNI,
+                    INNO = e.INNO,
+                    KAccI = e.KAccI,
+                    KAccO = e.KAccO,
+                    KPPI = e.KPPI,
+                    KPPO = e.KPPO,
+                    NameI = e.NameI,
+                    NameO = e.NameO,
+                    Number = e.Number,
+                    PayDate = e.PayDate,
+                    Queue = e.Queue,
+                    RAccI = e.RAccI,
+                    RAccO = e.RAccO,
+                    Reference = e.Reference
+                  };
+                  db.tPayment.Add(pmt);
+                }
+                else
+                {
+                  q2.Amount = e.Amount;
+                  q2.BankI = e.BankI;
+                  q2.BankO = e.BankO;
+                  q2.BICI = e.BICI;
+                  q2.BICO = e.BICO;
+                  q2.EnregID = e.ID;
+                  q2.InDateTime = DateTime.Now;
+                  q2.INNI = e.INNI;
+                  q2.INNO = e.INNO;
+                  q2.KAccI = e.KAccI;
+                  q2.KAccO = e.KAccO;
+                  q2.KPPI = e.KPPI;
+                  q2.KPPO = e.KPPO;
+                  q2.NameI = e.NameI;
+                  q2.NameO = e.NameO;
+                  q2.Number = e.Number;
+                  q2.PayDate = e.PayDate;
+                  q2.Queue = e.Queue;
+                  q2.RAccI = e.RAccI;
+                  q2.RAccO = e.RAccO;
+                  q2.Reference = e.Reference;
+                }
+                await db.SaveChangesAsync();
+              }
+              else if (EnregTypeID == 3)
+              {
+                var q2 = db.tEnregExt.Find(e.ID);
+                if (q2 is null)
+                {
+                  var ee = new tEnregExt { EnregID = e.ID, Comment1 = e.Comment1, Comment2 = e.Comment2, Comment3 = e.Comment3, Comment4 = e.Comment4, Comment5 = e.Comment5 };
+                  db.tEnregExt.Add(ee);
+                }
+                else
+                {
+                  q2.Comment1 = e.Comment1;
+                  q2.Comment2 = e.Comment2;
+                  q2.Comment3 = e.Comment3;
+                  q2.Comment4 = e.Comment4;
+                  q2.Comment5 = e.Comment5;
+                }
+                await db.SaveChangesAsync();
+              }
             }
           }
         }
@@ -238,18 +449,22 @@ namespace MO5.Areas.Code.Models
       var ids = data.Select(p => p.ID);
       var q = from e in db.tEnregistrement.AsNoTracking().Where(p => ids.Contains(p.ID) && p.EnregTypeID == EnregTypeID)
               join tr in db.tTreaty on e.TreatyID equals tr.TreatyID into tr_
-              from tr1 in tr_.DefaultIfEmpty()
-              join f in db.tFinInst on tr1.FinInstID equals f.FinInstID into f_
+              from tr in tr_.DefaultIfEmpty()
+              join f in db.tFinInst on tr.FinInstID equals f.FinInstID into f_
               from f in f_.DefaultIfEmpty()
+              join td in db.tDepoTreaty on e.TreatyID equals td.ID into td_
+              from td in td_.DefaultIfEmpty()
               from us in db.taLib.Where(a => a.LID == e.EmployeID).DefaultIfEmpty()
               from dt in db.tObjClassifier.Where(a => a.ObjClassifierID == e.DocTypeID).DefaultIfEmpty()
+              join p in db.tPayment on e.ID equals p.EnregID into p_
+              from p in p_.DefaultIfEmpty()
               select new
               {
                 id = e.ID,
                 e.Numero,
                 e.TreatyID,
-                trNameBrief = tr1.Name.Trim(),
-                ClnName = f.Name.Trim(),
+                trNameBrief = e.EnregTypeID == 2 ? td.Number : tr.Name.Trim(),
+                ClnName = e.EnregTypeID == 2 ? td.Client : f.Name.Trim(),
                 e.RecuDate,
                 e.Tm,
                 e.Original,
@@ -278,7 +493,33 @@ namespace MO5.Areas.Code.Models
                 e.DateFact,
                 DayDogType = e.DayDogTypeID == 1 ? "рабочие" : "календарные",
                 Step = (int?)e.tEnregSteps.Step,
-                IsStepConfirmed = (bool?)e.tEnregSteps.IsConfirmed
+                IsStepConfirmed = (bool?)e.tEnregSteps.IsConfirmed,
+                e.UserName,
+                Comment1 = e.tEnregExt.Comment1,
+                Comment2 = e.tEnregExt.Comment2,
+                Comment3 = e.tEnregExt.Comment3,
+                Comment4 = e.tEnregExt.Comment4,
+                Comment5 = e.tEnregExt.Comment5,
+                PaymentID = (int?)p.ID,
+                p.Amount,
+                p.BankI,
+                p.BankO,
+                p.BICI,
+                p.BICO,
+                p.INNI,
+                p.INNO,
+                p.KAccI,
+                p.KAccO,
+                p.KPPI,
+                p.KPPO,
+                p.NameI,
+                p.NameO,
+                p.Number,
+                p.PayDate,
+                p.Queue,
+                p.RAccI,
+                p.RAccO,
+                p.Reference
               };
       return q;
     }
@@ -297,6 +538,9 @@ namespace MO5.Areas.Code.Models
             {
               if (isOnlyMy == false || q1.UserName == UserName)
               {
+                var q2 = db.tPayment.Where(p => p.EnregID == e.ID);
+                if (q2 != null)
+                  db.tPayment.RemoveRange(q2);
                 db.tEnregistrement.Remove(q1);
               }
             }
@@ -311,14 +555,23 @@ namespace MO5.Areas.Code.Models
       }
     }
 
-    public IEnumerable<dynamic> getTreaties(string q, int limit)
+    public IEnumerable<dynamic> getTreaties(string q, int EnregTypeID, int limit)
     {
-      return (from t in db.tTreaty
-                //join ttt in db.tTreatyTreatyTypes.Where(t => new int[] { 1, 2 }.Contains(t.TreatyTypeID)) on t.TreatyID equals ttt.TreatyID
-              join f in db.tFinInst on t.FinInstID equals f.FinInstID
-              where t.IsDisabled == false && (t.DateFinish == null || t.DateFinish > DateTime.Today) && (t.Name.Contains(q) || f.Name.Contains(q))
-              orderby t.Name
-              select new { id = t.TreatyID, name = f.Name.Trim(), brief = t.Name.Trim() }).Take(limit);
+      if (EnregTypeID == 2)
+      {
+        return (from t in db.tTreaty
+                join f in db.tFinInst on t.FinInstID equals f.FinInstID
+                where t.IsDisabled == false && (t.DateFinish == null || t.DateFinish > DateTime.Today) && (t.Name.Contains(q) || f.Name.Contains(q))
+                orderby t.Name
+                select new { id = t.TreatyID, name = f.Name.Trim(), brief = t.Name.Trim() }).Take(limit);
+      }
+      else
+      {
+        return (from t in db.tDepoTreaty
+                where (t.Number.Contains(q) || t.Client.Contains(q))
+                orderby t.Number
+                select new { id = t.ID, name = t.Number.Trim(), brief = t.Client.Trim() }).Take(limit);
+      }
     }
 
     public IEnumerable<dynamic> GetDocType(int id, int EnregTypeID)
@@ -586,15 +839,15 @@ namespace MO5.Areas.Code.Models
       return o;
     }
 
-    public bool enregConfirm(Guid id, string Login, int EnregTypeID)
+    public int enregConfirm(Guid id, string Login, int EnregTypeID)
     {
       using (var dbTrans = db.Database.BeginTransaction())
       {
         try
         {
           var o = db.tEnregSteps.Find(id);
-          if (o == null) return false;
-          if (o.tEnregistrement1?.EnregTypeID != EnregTypeID) return false;
+          if (o == null) return -1;
+          if (o.tEnregistrement1?.EnregTypeID != EnregTypeID) return -1;
           if (o.Step != 0)
           {
             var email = (from u in db.aspnet_Users
@@ -602,7 +855,23 @@ namespace MO5.Areas.Code.Models
                          select u.aspnet_Membership.Email)
                         .FirstOrDefault();
             var edts = db.tEnregDTSteps.FirstOrDefault(p => p.DocTypeID == o.tEnregistrement1.DocTypeID && p.Step == o.Step && p.EmailTo.Contains(email));
-            if (edts == null) return false;
+            if (edts == null)
+            {
+              var em =
+                from u in db.aspnet_Users
+                where u.UserName == Login
+                from r in u.aspnet_Roles
+                join g in db.aspnet_Users on r.RoleName equals g.UserName
+                from e in db.tEnregDTSteps 
+                where e.EmailTo.Contains(g.aspnet_Membership.Email)
+                where e.DocTypeID == o.tEnregistrement1.DocTypeID
+                where e.Step == o.Step
+                select e.ID;
+
+              if (!em.Any())
+                return 0;
+            }
+
           }
           var q2 = new tEnregistrementLog { EnregID = o.EnregID, EnregStepID = id, Login = Login, InDateTime = DateTime.Now };
           db.tEnregistrementLog.Add(q2);
@@ -623,7 +892,7 @@ namespace MO5.Areas.Code.Models
               o.tEnregistrement1.StepID = s.ID;
               db.SaveChanges();
               dbTrans.Commit();
-              return true;
+              return 1;
             }
             else
             {
@@ -631,11 +900,11 @@ namespace MO5.Areas.Code.Models
               o.tEnregistrement1.DateFact = DateTime.Today;
               db.SaveChanges();
               dbTrans.Commit();
-              return false;
+              return 2;
             }
           }
           dbTrans.Commit();
-          return false;
+          return 3;
         }
         catch (Exception)
         {
@@ -650,9 +919,11 @@ namespace MO5.Areas.Code.Models
       var q = (from e in db.tEnregistrement
                where e.ID == id && e.EnregTypeID == EnregTypeID
                join tr in db.tTreaty on e.TreatyID equals tr.TreatyID into tr_
-               from tr1 in tr_.DefaultIfEmpty()
-               join f in db.tFinInst on tr1.FinInstID equals f.FinInstID into f_
+               from tr in tr_.DefaultIfEmpty()
+               join f in db.tFinInst on tr.FinInstID equals f.FinInstID into f_
                from f in f_.DefaultIfEmpty()
+               join td in db.tDepoTreaty on e.TreatyID equals td.ID into td_
+               from td in td_.DefaultIfEmpty()
                from dt in db.tObjClassifier.Where(a => a.ObjClassifierID == e.DocTypeID).DefaultIfEmpty()
                select new
                {
@@ -661,8 +932,8 @@ namespace MO5.Areas.Code.Models
                  e.RecuDate,
                  e.DocTypeID,
                  DTName = dt.Name,
-                 trNameBrief = tr1.Name.Trim(),
-                 ClnName = f.Name.Trim(),
+                 trNameBrief = e.EnregTypeID == 2 ? td.Number : tr.Name.Trim(),
+                 ClnName = e.EnregTypeID == 2 ? td.Client : f.Name.Trim(),
                  DateDog = e.DayDogTypeID == 1 ? UserDbFunction.ufAddWorkDate(e.RecuDate, e.DaysDog) : SqlFunctions.DateAdd("d", e.DaysDog, e.RecuDate),
                  e.FileName,
                  e.FileNameO,
@@ -678,7 +949,10 @@ namespace MO5.Areas.Code.Models
       sb.Append($"<tr><td>Клиент</td><td>{q.ClnName}</td></tr>");
       sb.Append($"<tr><td>Дата исполнения до</td><td>{q.DateDog:dd.MM.yyyy}</td></tr>");
       //sb.Append($"<tr><td>Скан поручения</td><td><a href='http://{host}/code/enreg/GetFile?data={q.FileName}'>Файл</a></td></tr>");
-      sb.Append($"<tr><td>Скан поручения</td><td><a href='{host}?data={q.FileName}'>Файл</a></td></tr>");
+      if (!string.IsNullOrEmpty(q.FileName))
+      {
+        sb.Append($"<tr><td>Скан поручения</td><td><a href='{host}?data={q.FileName}'>Файл</a></td></tr>");
+      }
       sb.Append("</table>");
       SmtpClient sc = new SmtpClient();
       MailMessage message = new MailMessage();
@@ -708,9 +982,11 @@ namespace MO5.Areas.Code.Models
                let e = es.tEnregistrement1
                where e.EnregTypeID == EnregTypeID
                join tr in db.tTreaty on e.TreatyID equals tr.TreatyID into tr_
-               from tr1 in tr_.DefaultIfEmpty()
-               join f in db.tFinInst on tr1.FinInstID equals f.FinInstID into f_
+               from tr in tr_.DefaultIfEmpty()
+               join f in db.tFinInst on tr.FinInstID equals f.FinInstID into f_
                from f in f_.DefaultIfEmpty()
+               join td in db.tDepoTreaty on e.TreatyID equals td.ID into td_
+               from td in td_.DefaultIfEmpty()
                from dt in db.tObjClassifier.Where(a => a.ObjClassifierID == e.DocTypeID).DefaultIfEmpty()
                select new
                {
@@ -720,8 +996,8 @@ namespace MO5.Areas.Code.Models
                  e.RecuDate,
                  e.DocTypeID,
                  DTName = dt.Name,
-                 trNameBrief = tr1.Name.Trim(),
-                 ClnName = f.Name.Trim(),
+                 trNameBrief = e.EnregTypeID == 2 ? td.Number : tr.Name.Trim(),
+                 ClnName = e.EnregTypeID == 2 ? td.Client : f.Name.Trim(),
                  DateDog = e.DayDogTypeID == 1 ? UserDbFunction.ufAddWorkDate(e.RecuDate, e.DaysDog) : SqlFunctions.DateAdd("d", e.DaysDog, e.RecuDate),
                  e.FileName,
                  e.FileNameO,
@@ -731,11 +1007,12 @@ namespace MO5.Areas.Code.Models
       return q;
     }
 
-    public IEnumerable<dynamic> GetEnregStepLog(int id)
+    public IEnumerable<dynamic> GetEnregStepLog(int? id)
     {
-      var e = db.tEnregistrement.Find(id);
-      var q = from dts in db.tEnregDTSteps
-              where dts.DocTypeID == e.DocTypeID
+      //var e = db.tEnregistrement.Find(id);
+      var q = from e in db.tEnregistrement
+              where e.ID == id
+              join dts in db.tEnregDTSteps on e.DocTypeID equals dts.DocTypeID
               join es in db.tEnregSteps.Where(p => p.EnregID == id) on dts.Step equals es.Step into _es
               from es in _es.DefaultIfEmpty()
               join u in db.aspnet_Users on es.UserName equals u.UserName into _u
@@ -770,24 +1047,44 @@ namespace MO5.Areas.Code.Models
       return q;
     }
 
-    public IEnumerable<dynamic> GetTreatyList(string filter, string sort, string dir)
+    public IEnumerable<dynamic> GetTreatyList(string filter, int EnregTypeID, string sort, string dir)
     {
-      var q1 = db.tTreaty.Where(p => 1 == 1);
-      if (!string.IsNullOrEmpty(filter))
-        q1 = q1.Where(p => p.Name.Contains(filter) || p.tFinInst.Name.Contains(filter));
-      var q = from tr in q1
-              select new
-              {
-                tr.TreatyID,
-                tr.Name,
-                tr.FinInstID,
-                ClientName = tr.tFinInst.Name,
-                tr.IsDisabled,
-                tr.DateStart,
-                tr.DateFinish
-              };
-      if (sort != null) q = q.OrderBy(sort + (dir == "DESC" ? " descending" : ""));
-      return q;
+      if (EnregTypeID == 2)
+      {
+        var q1 = db.tDepoTreaty.AsEnumerable();
+        if (!string.IsNullOrEmpty(filter))
+          q1 = q1.Where(p => p.Number.Contains(filter) || p.Client.Contains(filter));
+        var q = from tr in q1
+                select new
+                {
+                  TreatyID = tr.ID,
+                  Name = tr.Number,
+                  ClientName = tr.Client,
+                  IsDisabled = 0,
+                  tr.DateStart
+                };
+        if (sort != null) q = q.OrderBy(sort + (dir == "DESC" ? " descending" : ""));
+        return q;
+      }
+      else
+      {
+        var q1 = db.tTreaty.Where(p => 1 == 1);
+        if (!string.IsNullOrEmpty(filter))
+          q1 = q1.Where(p => p.Name.Contains(filter) || p.tFinInst.Name.Contains(filter));
+        var q = from tr in q1
+                select new
+                {
+                  tr.TreatyID,
+                  tr.Name,
+                  tr.FinInstID,
+                  ClientName = tr.tFinInst.Name,
+                  tr.IsDisabled,
+                  tr.DateStart,
+                  tr.DateFinish
+                };
+        if (sort != null) q = q.OrderBy(sort + (dir == "DESC" ? " descending" : ""));
+        return q;
+      }
     }
 
     public (bool IsAuth, string FileName) GetFileG(int id, string UserName, bool IsController)
@@ -798,6 +1095,59 @@ namespace MO5.Areas.Code.Models
         return (true, e?.FileNameG);
       }
       else return (false, "");
+    }
+
+    public (bool success, string Message) AddPayment(List<int> id, DateTime date, int queue)
+    {
+      foreach (var _id in id)
+      {
+        var e = db.tEnregistrement.Find(_id);
+        if (e != null)
+        {
+          var p = db.tPayment.FirstOrDefault(p => p.EnregID == _id);
+          if (p == null)
+          {
+            var paym = new tPayment();
+            paym.EnregID = e.ID;
+            paym.PayDate = date;
+            paym.Queue = queue;
+            db.tPayment.Add(paym);
+
+          }
+          else
+          {
+            p.PayDate = date;
+            p.Queue = queue;
+          }
+          db.SaveChanges();
+        }
+      }
+      return (true, "Платёж сохранен");
+    }
+
+    public PaymentDoc GetPayment(int ID)
+    {
+      var q =
+        from pm in db.tPayment.AsNoTracking()
+        where pm.EnregID == ID
+        select new PaymentDoc
+        {
+          ID = pm.ID,
+          Amount = pm.tEnregistrement.Qty,
+          BankO = pm.BankO,
+          BICO = pm.BICO,
+          INNO = pm.INNO,
+          KAccO = pm.KAccO,
+          KPPO = pm.KPPO,
+          NameO = pm.NameO,
+          RAccO = pm.RAccO,
+          Reference = pm.Reference,
+          Treaty = pm.tEnregistrement.tTreaty.Name,
+          TreatyDate = pm.tEnregistrement.tTreaty.DateStart,
+          Client = pm.tEnregistrement.tTreaty.tFinInst.Name,
+        };
+      return q.FirstOrDefault();
+
     }
   }
 

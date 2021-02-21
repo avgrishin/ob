@@ -2,6 +2,7 @@
 using MO5.Controllers;
 using MO5.Helpers;
 using MO5.Models;
+using NReco.PdfGenerator;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,6 +13,7 @@ using System.Web.Mvc;
 
 namespace MO5.Areas.Code.Controllers
 {
+  [Authorize(Roles = "jrpk")]
   public class PaymentController : BaseController
   {
     private readonly IPaymentRepository _paymentRepository;
@@ -68,8 +70,33 @@ namespace MO5.Areas.Code.Controllers
     {
       var s = _configProvider.GetValue<string>("plat");
       Response.ContentType = "application/json";
-      return Content("{ success: true, data: "+s+"}", "application/json");
+      return Content("{ success: true, data: " + s + "}", "application/json");
     }
 
+    public ActionResult getPdf1(int ID)
+    {
+      var q = _paymentRepository.GetPayment(ID);
+      var s = RenderViewToString(ControllerContext, "doc1", q);
+      var pdfConv = new HtmlToPdfConverter();
+      var pdf = pdfConv.GeneratePdf(s);
+      return File(pdf, "application/pdf", "Поручение.pdf");
+    }
+    public ActionResult getPdf2(int ID)
+    {
+      var q = _paymentRepository.GetPayment(ID);
+      var s = RenderViewToString(ControllerContext, "doc2", q);
+      var pdfConv = new HtmlToPdfConverter();
+      var pdf = pdfConv.GeneratePdf(s);
+      return File(pdf, "application/pdf", "Рапоряжение.pdf");
+    }
+    public ActionResult GetReceiver(int id)
+    {
+      return new JsonnResult { Data = new { success = true, data = _paymentRepository.GetReceiver(id) } };
+    }
+
+    public ActionResult GetReceiverT(int? id, int treatyId)
+    {
+      return new JsonnResult { Data = new { success = true, data = _paymentRepository.GetReceiver(id, treatyId) } };
+    }
   }
 }

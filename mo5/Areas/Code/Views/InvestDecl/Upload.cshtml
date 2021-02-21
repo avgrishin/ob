@@ -1,0 +1,140 @@
+﻿@{
+  ViewBag.Title = "Загрузка файла";
+  Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section scripts {
+  <style type="text/css">
+    .icon-refresh
+    {
+      background-image: url(@Url.Content("~/Scripts/ExtJS62/build/classic/theme-crisp/resources/images/grid/refresh.png")) !important;
+    }
+    .gray-row .x-grid-cell {
+      color: gray;
+    }
+    .upload-icon {
+      background-image: url(@Href("~/Content/images/image_add.png"));
+    }
+  </style>
+  <link rel="stylesheet" type="text/css" href="~/Scripts/ExtJS62/build/classic/theme-crisp/resources/theme-crisp-all.css" />
+  <script type="text/javascript" src="~/Scripts/ExtJS62/ext-bootstrap.js"></script>
+
+  <script type="text/javascript" src="~/Scripts/ExtJS62/build/classic/locale/locale-ru.js"></script>
+  <script type="text/javascript" src="~/Scripts/ExtJS62/ux/Exporter.js"></script>
+
+  <script type="text/javascript">
+
+
+    Ext.define('Upload.Form', {
+      extend: 'Ext.form.Panel',
+      alias: 'widget.upform',
+      initComponent: function () {
+        Ext.apply(this, {
+          fileurl: 'FileUpload',
+          width: 500,
+          layout: 'fit',
+          autoHeight: true,
+          plain: true,
+          buttonAlign: 'center',
+          border: true,
+          bodyPadding: 10,
+          defaults: { anchor: '100%' },
+          defaultType: 'textfield',
+          layoutConfig: { labelSeparator: '' },
+          fieldDefaults: { labelWidth: 100, labelAlign: 'left' },
+          padding: '0 0 15 0',
+          border: false,
+          waitMsgTarget: true,
+          defaults: { anchor: '100%' },
+          items: [{
+            xtype: 'filefield',
+            emptyText: 'Выбор файла',
+            name: 'fn',
+            fieldLabel: 'Загрузка',
+            buttonText: '',
+            buttonConfig: {
+              iconCls: 'upload-icon'
+            }
+          }],
+          buttons: [{
+            text: 'Загрузить',
+            scope: this,
+            handler: function () {
+              var form = this;
+              if (form.isValid()) {
+                form.submit({
+                  url: this.fileurl,
+                  waitMsg: 'Отправка файла...',
+                  waitMsgTarget: true,
+                  success: function (fp, o) {
+                    alert('Файл "' + o.result.file + '" загружен');
+                  },
+                  failure: function (fp, o) {
+                    alert('Ошибка');
+                  }
+                });
+              }
+            }
+          }, {
+            text: 'Обработать',
+            scope: this,
+            handler: function () {
+              Ext.Ajax.request({
+                url: 'ProcessFile',
+                timeout: 60000,
+                success: function (response) {
+                  var jr = Ext.decode(response.responseText)
+                  Ext.Msg.show({
+                    message: jr.data,
+                    icon: jr.success ? Ext.Msg.INFO : Ext.Msg.WARNING,
+                    buttons: Ext.Msg.OK
+                  });
+                },
+                failure: function (response) {
+                  var text = response.responseText;
+                  alert('Ошибка!');
+                }
+              });
+            }
+          }],
+          listeners: {
+          }
+        });
+        this.callParent();
+      },
+
+      setUrl: function (_fileurl) {
+        var me = this
+        me.fileurl = _fileurl
+      },
+
+      onSave: function () {
+        var active = this.activeRecord, form = this.down('form').getForm();
+        if (!active) {
+          return;
+        }
+        if (form.isValid()) {
+          form.updateRecord(active);
+          this.fireEvent('update');
+          this.hide();
+        }
+      }
+    });
+
+    Ext.onReady(function () {
+      Ext.tip.QuickTipManager.init();
+      Ext.create('Ext.Viewport', {
+        layout: 'border',
+        items: [{
+          region: 'north',
+          border: false,
+          contentEl: 'header'
+        }, {
+          xtype: 'upform',
+          region: 'center'
+        }]
+      });
+    });
+  </script>
+}
+  

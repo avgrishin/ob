@@ -35,5 +35,8 @@ namespace MO5.Models
         public Nullable<int> Queue { get; set; }
         public string Reference { get; set; }
         public Nullable<System.DateTime> InDateTime { get; set; }
+        public Nullable<int> EnregID { get; set; }
+    
+        public virtual tEnregistrement tEnregistrement { get; set; }
     }
 }

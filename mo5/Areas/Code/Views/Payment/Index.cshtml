@@ -95,6 +95,7 @@
         { name: 'KPPI', type: 'string' },
         { name: 'NameI', type: 'string' },
         { name: 'BICO', type: 'string' },
+        { name: 'BankO', type: 'string' },
         { name: 'RAccO', type: 'string' },
         { name: 'KAccO', type: 'string' },
         { name: 'INNO', type: 'string' },
@@ -103,6 +104,11 @@
         { name: 'Amount', type: 'number' },
         { name: 'Reference', type: 'string' },
         { name: 'Queue', type: 'number', defaultValue: 5 },
+        { name: 'RecuDate', type: 'date', dateFormat: "c", persist: false },
+        { name: 'EnregID', type: 'int' },
+        { name: 'Numero', type: 'string' },
+        { name: 'trName', type: 'string' },
+        { name: 'ClnName', type: 'string' },
       ]
     });
 
@@ -129,6 +135,39 @@
           writeAllFields: true,
           allowSingle: false,
           encode: false
+        },
+        simpleSortMode: true
+      }
+    });
+
+    Ext.define('Receiver', {
+      extend: 'Ext.data.Model',
+      idProperty: 'ID',
+      fields: [
+        { name: 'ID', type: 'int' },
+        { name: 'BICO', type: 'string' },
+        { name: 'BankO', type: 'string' },
+        { name: 'RAccO', type: 'string' },
+        { name: 'KAccO', type: 'string' },
+        { name: 'INNO', type: 'string' },
+        { name: 'KPPO', type: 'string' },
+        { name: 'NameO', type: 'string' },
+      ]
+    });
+
+    Ext.create('Ext.data.Store', {
+      storeId: 'storercv',
+      model: 'Receiver',
+      proxy: {
+        type: 'ajax',
+        api: {
+          read: '@Url.Action("GetReceiver")',
+        },
+        actionMethods: { read: 'POST' },
+        reader: {
+          type: 'json',
+          rootProperty: 'data',
+          totalProperty: 'totalCount'
         },
         simpleSortMode: true
       }
@@ -332,7 +371,20 @@
               defaultType: 'textfield',
               bodyPadding: 10,
               items: [{
-                name: 'NameO'
+                xtype: 'fieldcontainer',
+                layout: 'hbox',
+                anchor: '100%',
+                defaultType: 'textfield',
+                items: [{
+                  xtype: 'button',
+                  text: 'Найти',
+                  margin: '0 10 0 0',
+                  scope: this,
+                  handler: this.onFindReceiver
+                }, {
+                  name: 'NameO',
+                  flex: 1
+                }]
               }, {
                 xtype: 'fieldcontainer',
                 layout: 'hbox',
@@ -456,6 +508,43 @@
         }
       },
 
+      onFindReceiver: function () {
+        var EnregID = this.activeRecord.get('EnregID');
+        if (EnregID) {
+          var w = Ext.create('Ext.window.Window', {
+            scope: this,
+            title: this.activeRecord.get('ClnName'),
+            modal: true,
+            width: 1000,
+            height: 500,
+            layout: 'fit',
+            items: [{
+              enregId: EnregID,
+              xtype: 'rcvgrid',
+              store: 'storercv'
+            }],
+            listeners: {
+              scope: this,
+              sel: function (rec) {
+                //console.log(data);
+                var form = this.down('form').getForm();
+                form.findField('NameO').setValue(rec.get('NameO'));
+                form.findField('BICO').setValue(rec.get('BICO'));
+                form.findField('BankO').setValue(rec.get('BankO'));
+                form.findField('KAccO').setValue(rec.get('KAccO'));
+                form.findField('RAccO').setValue(rec.get('RAccO'));
+                form.findField('INNO').setValue(rec.get('INNO'));
+                form.findField('KPPO').setValue(rec.get('KPPO'));
+                w.close();
+              }
+            }
+          }).show(this);
+        }
+        else {
+          Ext.Msg.alert('Error', 'Поручение не привязано');
+        }
+      },
+
       onSave: function () {
         var active = this.activeRecord, form = this.down('form').getForm();
         if (!active) {
@@ -523,6 +612,79 @@
       }
     });
 
+    Ext.define('Receiver.Grid', {
+      extend: 'Ext.grid.Panel',
+      alias: 'widget.rcvgrid',
+      initComponent: function () {
+        Ext.apply(this, {
+          defaultType: 'textfield',
+          invalidateScrollerOnRefresh: false,
+          layoutConfig: { labelSeparator: '' },
+          columns: [{
+            header: 'Наименование',
+            dataIndex: 'NameO',
+            width: 195
+          }, {
+            header: 'БИК',
+            dataIndex: 'BICO',
+            width: 88
+          }, {
+            header: 'Банк',
+            dataIndex: 'BankO',
+            width: 180
+          }, {
+            header: 'Счет банка',
+            dataIndex: 'KAccO',
+            width: 165,
+            hidden: true
+          }, {
+            header: 'Р/с',
+            dataIndex: 'RAccO',
+            width: 165
+          }, {
+            header: 'ИНН',
+            dataIndex: 'INNO',
+            width: 110
+          }, {
+            header: 'КПП',
+            dataIndex: 'KPPO',
+            width: 88
+          }],
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'top',
+            items: [{
+              iconCls: 'icon-refresh',
+              text: 'Обновить',
+              scope: this,
+              handler: this.onRefreshClick
+            }]
+          }],
+          viewConfig: {
+            preserveScrollOnRefresh: true,
+            enableTextSelection: true,
+            listeners: {
+              scope: this,
+              beforerender: this.onRefreshClick
+            }
+          }
+        });
+        this.callParent();
+        this.on('itemdblclick', this.onRowDblClick, this) ;
+      },
+
+      onRefreshClick: function () {
+        var me = this;
+        me.store.proxy.extraParams = { id: me.enregId };
+        me.store.load();
+      },
+
+      onRowDblClick: function (view, record, item, index, e) {
+        this.up('window').fireEvent('sel', record);
+        return false;
+      }
+    });
+
     Ext.define('Payment.Grid', {
       extend: 'Ext.grid.Panel',
       alias: 'widget.pmtgrid',
@@ -536,12 +698,47 @@
             preserveScrollOnRefresh: true,
             enableTextSelection: true
           },
-          plugins: 'gridfilters',
+          plugins: {
+            gridfilters: {
+              menuFilterText: 'Фильтр'
+            }
+          },
           selModel: {
             type: 'checkboxmodel',
             checkOnly: false
           },
           columns: [{
+            header: 'Номер поруч',
+            dataIndex: 'Numero',
+            width: 100,
+            filter: {
+              type: 'string',
+              emptyText: 'Номер поручения'
+            }
+          }, {
+            header: 'Клиент',
+            dataIndex: 'ClnName',
+            width: 170,
+            tdCls: 'wrap-text',
+            filter: {
+              type: 'string',
+              emptyText: 'Клиент'
+            }
+          }, {
+            header: 'Договор',
+            dataIndex: 'trName',
+            width: 95,
+            filter: {
+              type: 'string',
+              emptyText: 'Договор'
+            }
+          }, {
+            header: 'Дата получения',
+            dataIndex: 'RecuDate',
+            width: 88,
+            xtype: 'datecolumn',
+            format: 'd.m.Y'
+          }, {
             header: 'Номер',
             dataIndex: 'Number',
             width: 70,
@@ -557,7 +754,13 @@
             }
           }, {
             text: 'Плательщик',
-            columns: [{
+              columns: [{
+                header: 'Наименование',
+                dataIndex: 'NameI',
+                width: 165,
+                filter: {
+                }
+              }, {
               header: 'БИК',
               dataIndex: 'BICI',
               width: 88,
@@ -574,7 +777,8 @@
             }, {
               header: 'Счет банка',
               dataIndex: 'KAccI',
-              width: 165
+              width: 165,
+              hidden: true
             }, {
               header: 'Р/с',
               dataIndex: 'RAccI',
@@ -587,23 +791,23 @@
               width: 95,
               filter: {
               }
-            }, {
+              }, {
               header: 'КПП',
               dataIndex: 'KPPI',
               width: 88,
               tdCls: 'wrap-text',
               filter: {
               }
-            }, {
-              header: 'Наименование',
-              dataIndex: 'NameI',
-              width: 165,
-              filter: {
-              }
             }]
           }, {
             text: 'Получатель',
-            columns: [{
+              columns: [{
+                header: 'Наименование',
+                dataIndex: 'NameO',
+                width: 165,
+                filter: {
+                }
+              }, {
               header: 'БИК',
               dataIndex: 'BICO',
               width: 88,
@@ -620,7 +824,8 @@
             }, {
               header: 'Счет банка',
               dataIndex: 'KAccO',
-              width: 165
+              width: 165,
+              hidden: true
             }, {
               header: 'Р/с',
               dataIndex: 'RAccO',
@@ -633,17 +838,11 @@
               width: 110,
               filter: {
               }
-            }, {
+              }, {
               header: 'КПП',
               dataIndex: 'KPPO',
               width: 88,
               tdCls: 'wrap-text',
-              filter: {
-              }
-            }, {
-              header: 'Наименование',
-              dataIndex: 'NameO',
-              width: 165,
               filter: {
               }
             }]
@@ -712,6 +911,18 @@
               scope: this,
               handler: this.onDeleteClick
             }, {
+              text: 'Поручение',
+              disabled: true,
+              itemId: 'poruch',
+              scope: this,
+              handler: this.onPoruchClick
+            }, {
+              text: 'Распоряжение',
+              disabled: true,
+              itemId: 'raspor',
+              scope: this,
+              handler: this.onRasporClick
+            }, {
               xtype: 'exporterbutton',
               text: 'Экспорт',
               action: '@Url.Action("ExportExcel", "Home", new { area = "" })',
@@ -741,10 +952,20 @@
         me.store.load();
       },
 
+      onPoruchClick: function () {
+        window.location.assign("@Url.Action("getPdf1")?ID=" + this.getSelectionModel().getSelection()[0].get('ID'));
+      },
+
+      onRasporClick: function () {
+        window.location.assign("@Url.Action("getPdf2")?ID=" + this.getSelectionModel().getSelection()[0].get('ID'));
+      },
+
       onSelectChange: function (selModel, selections) {
         this.down('#delete').setDisabled(selections.length === 0);
         this.down('#change').setDisabled(selections.length === 0);
         this.down('#unload').setDisabled(selections.length === 0);
+        this.down('#poruch').setDisabled(selections.length === 0);
+        this.down('#raspor').setDisabled(selections.length === 0);
       },
 
       onUnloadClick: function () {

@@ -1,4 +1,6 @@
-﻿using MO5.Models;
+﻿using Microsoft.AspNet.SignalR;
+using Microsoft.AspNet.SignalR.Hubs;
+using MO5.Models;
 using Ninject.Modules;
 using Ninject.Web.Common;
 using System;
@@ -16,11 +18,16 @@ namespace MO5.Areas.Code.Models
     bool DelPayment(List<tPayment> data, string UserName);
     tBank GetBankByBIC(string BIC);
     string[] Unload(List<int> data);
+    PaymentDoc GetPayment(int ID);
+    IEnumerable<dynamic> GetReceiver(int id);
+    IEnumerable<dynamic> GetReceiver(int? id, int? TreatyID);
+    bool GetRest(int PaymID);
   }
 
   public class PaymentRepository : IPaymentRepository
   {
     private MiddleOfficeEntities db = new MiddleOfficeEntities() { };
+    private readonly IHubConnectionContext<dynamic> clients = GlobalHost.ConnectionManager.GetHubContext<Hubs.RestHub>().Clients;
 
     public IEnumerable<dynamic> GetPaymentList(DateTime? d1, DateTime? d2, string UserName, string sort, string dir)
     {
@@ -52,6 +59,11 @@ namespace MO5.Areas.Code.Models
                 pm.RAccI,
                 pm.RAccO,
                 pm.Reference,
+                pm.EnregID,
+                pm.tEnregistrement.RecuDate,
+                pm.tEnregistrement.Numero,
+                trName = pm.tEnregistrement.tTreaty.Name,
+                ClnName = pm.tEnregistrement.tTreaty.tFinInst.Name,
               };
       if (sort != null) q = q.OrderBy(sort + (dir == "DESC" ? " descending" : ""));
       return q.ToArray();
@@ -90,6 +102,11 @@ namespace MO5.Areas.Code.Models
                 pm.RAccI,
                 pm.RAccO,
                 pm.Reference,
+                pm.EnregID,
+                pm.tEnregistrement.RecuDate,
+                pm.tEnregistrement.Numero,
+                trName = pm.tEnregistrement.tTreaty.Name,
+                ClnName = pm.tEnregistrement.tTreaty.tFinInst.Name,
               };
       return q;
     }
@@ -148,6 +165,11 @@ namespace MO5.Areas.Code.Models
                 pm.RAccI,
                 pm.RAccO,
                 pm.Reference,
+                pm.EnregID,
+                pm.tEnregistrement.RecuDate,
+                pm.tEnregistrement.Numero,
+                trName = pm.tEnregistrement.tTreaty.Name,
+                ClnName = pm.tEnregistrement.tTreaty.tFinInst.Name,
               };
       return q;
     }
@@ -185,12 +207,71 @@ namespace MO5.Areas.Code.Models
 
     public string[] Unload(List<int> data)
     {
-      var q = db.tPayment.AsNoTracking().Where(p => data.Contains(p.ID)).ToArray().Select(pm => $"R000000                  {pm.BICI}{pm.RAccI}{pm.KAccI,20}{pm.Number.PadLeft(6, '0')}{pm.PayDate:ddMMyyyy}01{pm.BICO}{pm.RAccO}{pm.KAccO}{string.Format("{0:F0}", (int)(pm.Amount * 100)).PadLeft(18, '0')}{pm.Queue % 10:f0}{pm.INNI,12}{pm.KPPI,9}{pm.NameI,-160}{pm.INNO,12}{pm.KPPO,9}{pm.NameO,-160}{pm.Reference,-210}{"",8}{DateTime.Today:ddMMyyyy}{"",8}{"",8}{"",2}{"",20}{"",11}{"",2}{"",10}{"",15}{"",10}{"",2}{"",3}{"",2}{"",3}{"",8}{"",18}10 100{"",3}{"",2}0{"",3}{"",8}IN{"",25}{"",32}");
+      var q = db.tPayment.AsNoTracking().Where(p => data.Contains(p.ID)).ToArray().Select(pm => $"R000000                  {pm.BICI}{pm.RAccI}{pm.KAccI,20}{pm.Number.PadLeft(6, '0')}{pm.PayDate:ddMMyyyy}01{pm.BICO}{pm.RAccO}{pm.KAccO}{string.Format("{0:F0}", (int)(pm.Amount * 100)).PadLeft(18, '0')}{pm.Queue % 10:f0}{pm.INNI,12}{pm.KPPI,9}{pm.NameI,-160}{pm.INNO,12}{pm.KPPO,9}{pm.NameO,-160}{pm.Reference,-210}{"",8}{DateTime.Today:ddMMyyyy}{"",8}{"",8}{"",2}{"",20}{"",11}{"",2}{"",10}{"",15}{"",10}{"",2}{"",3}{"",2}{"",3}{"",8}{"",18}10 100{"",3}{"",2}0{"",3}{"",8}IN{"",25}{"",35}");
       return q.ToArray();
     }
 
-  }
+    public PaymentDoc GetPayment(int ID)
+    {
+      var q =
+        from pm in db.tPayment.AsNoTracking()
+        where pm.ID == ID
+        select new PaymentDoc
+        {
+          ID = pm.ID,
+          Amount = pm.Amount,
+          BankO = pm.BankO,
+          BICO = pm.BICO,
+          INNO = pm.INNO,
+          KAccO = pm.KAccO,
+          KPPO = pm.KPPO,
+          NameO = pm.NameO,
+          RAccO = pm.RAccO,
+          Reference = pm.Reference,
+          Treaty = pm.tEnregistrement.tTreaty.Name,
+          Client = pm.tEnregistrement.tTreaty.tFinInst.Name,
+        };
+      return q.FirstOrDefault();
+    }
+    public IEnumerable<dynamic> GetReceiver(int id)
+    {
+      var q = from en in db.tEnregistrement
+              where en.ID == id
+              from ena in db.tEnregistrement
+              where ena.TreatyID == en.TreatyID && ena.ID != en.ID
+              from pm in db.tPayment
+              where pm.EnregID == ena.ID
+              select new { pm.NameO, pm.INNO, pm.BankO, pm.BICO, pm.KAccO, pm.KPPO, pm.RAccO };
+      return q.Distinct();
+    }
 
+    public IEnumerable<dynamic> GetReceiver(int? id, int? TreatyID)
+    {
+      var eq = db.tEnregistrement.AsQueryable();
+      if (id.HasValue)
+        eq = eq.Where(p => p.ID == id);
+      else
+        eq = eq.Where(p => p.TreatyID == TreatyID);
+      var q = from en in eq
+              from ena in db.tEnregistrement
+              where ena.TreatyID == en.TreatyID && ena.ID != (id ?? -1)
+              from pm in db.tPayment
+              where pm.EnregID == ena.ID && pm.BICO != null
+              select new { pm.NameO, pm.INNO, pm.BankO, pm.BICO, pm.KAccO, pm.KPPO, pm.RAccO };
+      return q.Distinct();
+    }
+
+    public bool GetRest(int PaymID)
+    {
+      var TreatyID = db.tPayment.Where(p => p.ID == PaymID).Select(p => p.tEnregistrement.TreatyID).FirstOrDefault();
+      if (TreatyID != null)
+      {
+        var q = clients.All.getRest(new Hubs.SendRequest { Id = TreatyID.Value, PaymId = PaymID });
+        return true;
+      }
+      return false;
+    }
+  }
   public class PaymentModule : NinjectModule
   {
     /// <summary>

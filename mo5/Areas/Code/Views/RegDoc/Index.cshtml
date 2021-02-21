@@ -1,5 +1,5 @@
 ﻿@{
-  ViewBag.Title = "Журнал корресподенции";
+  ViewBag.Title = "Журнал корреспонденции";
   Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
@@ -130,6 +130,8 @@
         { name: 'Comment', type: 'string' },
         { name: 'IsAcquaintance', type: 'bool' },
         { name: 'IsComplaint', type: 'bool' },
+        { name: 'IsComplaintN', type: 'bool' },
+        { name: 'IsClientP', type: 'bool' },
         { name: 'Direction', type: 'bool' },
         { name: 'OrigUserID', type: 'int' },
         { name: 'OrigUser', type: 'string', persist: false }
@@ -292,7 +294,7 @@
       proxy: {
         type: 'ajax',
         actionMethods: { read: 'POST' },
-        url: '@Url.Action("GetObjClsByParent")' + '/26186',
+        url: '@Url.Action("GetOwners")',
         reader: {
           type: 'json',
           rootProperty: 'data'
@@ -543,7 +545,7 @@
               itemId: 'tp',
               anchor: '100%',
               border: false,
-              height: 600,
+              height: 650,
               border: false,
               items: [{
                 tag: 0,
@@ -693,22 +695,44 @@
                   }, {
                     xtype: 'checkboxfield',
                     name: 'IsAcquaintance',
-                    fieldLabel: 'Для ознакомления',
+                    boxLabel: 'Для ознакомления',
+                    labelAlign: 'right',
+                    margin: '0 10 0 0',
+                    labelWidth: 110,
+                    inputValue: '1',
+                    uncheckedValue: '0'
+                  }]
+                }, {
+                  xtype: 'fieldcontainer',
+                  layout: 'hbox',
+                  items: [{
+                    xtype: 'checkboxfield',
+                    name: 'IsClientP',
+                    boxLabel: 'КлиентПРОФ для 0420453',
                     labelAlign: 'right',
                     margin: '0 10 0 0',
                     labelWidth: 110,
                     inputValue: '1',
                     uncheckedValue: '0'
                   }, {
-                    xtype: 'checkboxfield',
-                    name: 'IsComplaint',
-                    fieldLabel: 'Жалоба, претензия',
-                    labelAlign: 'right',
-                    margin: '0 10 0 0',
-                    labelWidth: 120,
-                    inputValue: '1',
-                    uncheckedValue: '0'
-                  }]
+                      xtype: 'checkboxfield',
+                      name: 'IsComplaint',
+                      boxLabel: 'Жалоба, претензия (ПРОФ)',
+                      labelAlign: 'right',
+                      margin: '0 10 0 0',
+                      labelWidth: 120,
+                      inputValue: '1',
+                      uncheckedValue: '0'
+                    }, {
+                      xtype: 'checkboxfield',
+                      name: 'IsComplaintN',
+                      boxLabel: 'Жалоба (НЕПРОФ)',
+                      labelAlign: 'right',
+                      margin: '0 10 0 0',
+                      labelWidth: 110,
+                      inputValue: '1',
+                      uncheckedValue: '0'
+                    }]
                 }, {
                   xtype: 'textareafield',
                   name: 'Comment',
@@ -1092,8 +1116,30 @@
             dataIndex: 'TDate',
             width: 80
           }, {
-            header: 'Жалоба,<br/>претензия',
+            header: 'Клиент<br/>ПРОФ для 0420453',
+            dataIndex: 'IsClientP',
+            width: 40,
+            xtype: 'checkcolumn',
+            tdCls: 'wrap-text',
+            listeners: {
+              beforecheckchange: function (e) {
+                return false;
+              }
+            }
+          }, {
+            header: 'Жалоба,<br/>претензия<br/>(ПРОФ)',
             dataIndex: 'IsComplaint',
+            width: 40,
+            xtype: 'checkcolumn',
+            tdCls: 'wrap-text',
+            listeners: {
+              beforecheckchange: function (e) {
+                return false;
+              }
+            }
+          }, {
+            header: 'Жалоба<br/>(НЕПРОФ)',
+            dataIndex: 'IsComplaintN',
             width: 40,
             xtype: 'checkcolumn',
             tdCls: 'wrap-text',

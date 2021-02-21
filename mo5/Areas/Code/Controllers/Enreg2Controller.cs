@@ -5,7 +5,7 @@ namespace MO5.Areas.Code.Controllers
 {
   public class Enreg2Controller : EnregController
   {
-    public Enreg2Controller(IEnregRepository _enregRepository, IConfigurationProvider configProvider) : base(_enregRepository, configProvider, 1)
+    public Enreg2Controller(IEnregRepository _enregRepository, IConfigurationProvider configProvider) : base(_enregRepository, configProvider, 1, "ЖРПК РФК")
     {
     }
   }

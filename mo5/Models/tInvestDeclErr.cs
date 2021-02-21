@@ -31,5 +31,6 @@ namespace MO5.Models
         public Nullable<double> Course { get; set; }
         public Nullable<double> Qty { get; set; }
         public Nullable<double> coefS { get; set; }
+        public Nullable<int> TreatyID { get; set; }
     }
 }

@@ -436,10 +436,10 @@ namespace MO5.Controllers
     public ActionResult Contact()
     {
       ViewBag.Message = "Your contact page.";
-      var s = RenderViewToString(ControllerContext, "~/views/home/about.cshtml");
-
+      var s = RenderViewToString(ControllerContext, "~/views/home/contact.cshtml");
       IHubConnectionContext<dynamic> Clients = Microsoft.AspNet.SignalR.GlobalHost.ConnectionManager.GetHubContext<QuikHub>().Clients;
       Clients.Group(User.Identity.Name).a(User.Identity.Name);
+
       //Clients.Group(User.Identity.Name).addOrder(new SendOrder
       //{
       //  Id = 1,

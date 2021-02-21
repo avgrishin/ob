@@ -123,6 +123,25 @@
       ]
     });
 
+    Ext.define('CbForm', {
+      extend: 'Ext.data.Model',
+      fields: [
+        { name: 'SecurityID', type: 'int' },
+        { name: 'SecName', type: 'string' },
+        { name: 'Direction', type: 'boolean' },
+        { name: 'NumType', type: 'int', defaultValue: 1 },
+        { name: 'Num', type: 'number' },
+        { name: 'Qty', type: 'number', persist: false, allowNull: true },
+        { name: 'PercType', type: 'int', defaultValue: 0 },
+        { name: 'Percent', type: 'number' },
+        { name: 'Price', type: 'number' },
+        { name: 'FundID', type: 'int', defaultValue: 1 },
+        { name: 'PercEmitent', type: 'boolean', defaultValue: 0 },
+        { name: 'Lot', type: 'int', defaultValue: 1 },
+        { name: 'MinDS', type: 'int', defaultValue: 500 }
+      ]
+    });
+
     Ext.create('Ext.data.Store', {
       storeId: 'storeRests',
       model: 'Rests',
@@ -130,7 +149,7 @@
       proxy: {
         type: 'ajax',
         actionMethods: { read: 'POST' },
-        url: '@Url.Action("getRests")',
+        url: '@Url.Action("getRestLimits")',
         reader: {
           type: 'json',
           rootProperty: 'data'
@@ -139,10 +158,10 @@
       }
     });
 
-    Ext.create('Ext.data.Store', {
-      storeId: 'storeRestsSum',
-      model: 'Rests'
-    });
+    //Ext.create('Ext.data.Store', {
+    //  storeId: 'storeRestsSum',
+    //  model: 'Rests'
+    //});
 
     Ext.create('Ext.data.Store', {
       storeId: 'storeSec',
@@ -162,6 +181,26 @@
         type: 'ajax',
         actionMethods: { read: 'POST' },
         url: '@Url.Action("getSec")',
+        reader: {
+          type: 'json',
+          rootProperty: 'data'
+        },
+        simpleSortMode: true
+      }
+    });
+
+    Ext.create('Ext.data.Store', {
+      storeId: 'storeFund',
+      idProperty: 'id',
+      fields: [
+        { name: 'id', type: 'int' },
+        { name: 'name', type: 'string' }
+      ],
+      autoLoad: true,
+      proxy: {
+        type: 'ajax',
+        actionMethods: { read: 'POST' },
+        url: '@Url.Action("getFundList")',
         reader: {
           type: 'json',
           rootProperty: 'data'
@@ -335,7 +374,7 @@
           columns: [{
             dataIndex: 'clName',
             header: 'Клиент',
-            width: 150
+            width: 200
           }, {
             dataIndex: 'trName',
             header: 'Договор',
@@ -412,33 +451,52 @@
               text: 'Обновить',
               handler: this.onRefreshClick,
               scope: this
+            }, {
+              text: 'Добавить',
+              handler: this.onAllocClick,
+              scope: this
             }],
           viewConfig: {
             enableTextSelection: true,
             listeners: {
               scope: this,
-              beforerender: {
-                //fn: this.onRefreshClick
+              beforerender: function () {
+                var tid = Ext.decode(Ext.util.Cookies.get("tid"));
+                this.tid = tid || {};
               },
-              itemdblclick: this.onItemDblClick,
-              itemclick: {
-                //fn: this.onSelectChange
-              }
+              itemdblclick: this.onAllocClick
+              //,
+              //itemclick: {
+              //  //fn: this.onSelectChange
+              //}
             }
           }
         });
         this.callParent();
       },
 
-      onItemDblClick: function () {
+      onAllocClick: function () {
         if (!this.wini) {
           this.wini = Ext.create('Alloc.Win', {
             scope: this,
             listeners: {
+              update: function (form, data) {
+                alert(JSON.stringify(data));
+                //this.store.sync();
+              }
             }
           });
         }
-        this.wini.setActiveRecord(this.getSelectionModel().getSelection()[0]);
+
+        var rec = Ext.create('CbForm', {});
+        if (this.getSelectionModel().getSelection().length > 0) {
+          var sel = this.getSelectionModel().getSelection()[0];
+          if (sel.get('Class') !== 0) {
+            rec.set('SecurityID', sel.get('SecurityID'));
+            rec.set('SecName', sel.get('secName'));
+          }
+        }
+        this.wini.setActiveRecord(rec, this.tid);
         this.wini.show(this);
       },
 
@@ -502,9 +560,10 @@
           }],
           listeners: {
             scope: this,
-            sel: function (t) {
+            'sel': function (t) {
               //console.log(data);
               this.tid = t;
+              Ext.util.Cookies.set('tid', Ext.encode(t));
             }
           }
         }).show(this);
@@ -518,7 +577,7 @@
       },
 
       onTreatiesSelectClick: function () {
-        console.log(this);
+        //console.log(this);
         var sm = this.up('treatygrid').getSelectionModel().selected.getRange();
         if (sm.length > 0) {
           var t = {};
@@ -548,6 +607,10 @@
 
       onRefreshClick: function () {
         var me = this, store = me.store;
+        if (!me.tid) {
+          Ext.Msg.alert('Error', 'Не выбраны договоры');
+          return;
+        }
         Ext.apply(store.proxy.extraParams, { IsGroupSec: this.down('#cbIsGroupSec').getValue() }, me.tid);
         store.load(function (records, operation, success) {
           if (success) {
@@ -575,14 +638,15 @@
             bodyPadding: 10,
             activeRecord: null,
             fieldDefaults: {
-              labelAlign: 'left',
+              labelAlign: 'right',
+              labelWidth: 80,
               msgTarget: 'side'
             },
             items: [{
               xtype: 'fieldcontainer',
               layout: 'hbox',
               items: [{
-                name: 'secName',
+                name: 'SecName',
                 fieldLabel: 'ЦБ',
                 xtype: 'textfield',
                 readOnly: true,
@@ -590,7 +654,7 @@
                 flex: 1
               }, {
                 xtype: 'button',
-                text: 'Выбрать',
+                text: '>',
                 scope: this,
                 handler: this.onShowSec
               }, {
@@ -598,16 +662,231 @@
                 name: 'SecurityID'
               }]
             }, {
-              xtype: 'radiogroup',
-              fieldLabel: 'Направление',
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
               items: [{
-                boxLabel: 'Покупка',
-                name: 'Direction',
-                inputValue: '0'
+                xtype: 'radiogroup',
+                fieldLabel: 'Направление',
+                allowBlank: false,
+                items: [{
+                  boxLabel: 'Покупка',
+                  name: 'Direction',
+                  margin: '0 15 0 0',
+                  inputValue: '0'
+                }, {
+                  boxLabel: 'Продажа',
+                  name: 'Direction',
+                  inputValue: '1'
+                  }],
+                listeners: {
+                  scope: this,
+                  'change': this.onChangeDir
+                }
+              }]
+            }, {
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              items: [{
+                xtype: 'radiogroup',
+                vertical: true,
+                columns: 1,
+                allowBlank: false,
+                items: [{
+                  name: 'NumType',
+                  fieldLabel: 'Количество',
+                  boxLabelAlign: 'before',
+                  margin: '0 5 5 0',
+                  inputValue: '0'
+                }, {
+                  name: 'NumType',
+                  fieldLabel: '%',
+                  boxLabelAlign: 'before',
+                  inputValue: '1'
+                }],
+                listeners: {
+                  scope: this,
+                  'change': this.onChangeNumType
+                }
               }, {
-                boxLabel: 'Продажа',
-                name: 'Direction',
-                inputValue: '1'
+                xtype: 'fieldcontainer',
+                layout: 'vbox',
+                items: [{
+                  xtype: 'fieldcontainer',
+                  layout: 'hbox',
+                  items: [{
+                    xtype: 'numberfield',
+                    width: 100,
+                    minValue: 0,
+                    name: 'Num',
+                    allowBlank: true,
+                    hideTrigger: true,
+                    keyNavEnabled: false,
+                    mouseWheelEnabled: false,
+                    decimalPrecision: 6,
+                    decimalSeparator: '.',
+                    padding: '0 0 0 60'
+                  }, {
+                    xtype: 'numberfield',
+                    labelWidth: 50,
+                    width: 158,
+                    labelAlign: 'right',
+                    minValue: 0,
+                    name: 'Qty',
+                    fieldLabel: 'Объём',
+                    hideTrigger: true,
+                    keyNavEnabled: false,
+                    mouseWheelEnabled: false,
+                    decimalPrecision: 2,
+                    decimalSeparator: '.',
+                    padding: '0 5 0 0'
+                  }, {
+                    xtype: 'button',
+                    text: 'Задать количество',
+                    itemId: 'bSetNum',
+                    //scope: this,
+                    handler: this.onSetNum
+                  }]
+                }, {
+                  xtype: 'fieldcontainer',
+                  layout: 'hbox',
+                  items: [{
+                    xtype: 'combo',
+                    name: 'PercType',
+                    store: {
+                      xtype: 'store',
+                      fields: ['Text', 'Value'],
+                      data: [{ Text: 'До', Value: 0 }, { Text: 'На', Value: 1 }]
+                    },
+                    displayField: 'Text',
+                    valueField: 'Value',
+                    queryMode: 'local',
+                    selectOnFocus: true,
+                    width: 50,
+                    listeners: {
+                      'select': function (combo, record) {
+                      }
+                    }
+                  }, {
+                    xtype: 'numberfield',
+                    width: 100,
+                    minValue: 0,
+                    name: 'Percent',
+                    allowBlank: true,
+                    hideTrigger: true,
+                    keyNavEnabled: false,
+                    mouseWheelEnabled: false,
+                    decimalPrecision: 6,
+                    decimalSeparator: '.',
+                    padding: '0 0 0 10'
+                  }]
+                }]
+              }]
+            }, {
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              items: [{
+                xtype: 'numberfield',
+                width: 180,
+                minValue: 0,
+                name: 'Price',
+                fieldLabel: 'Цена',
+                allowBlank: false,
+                hideTrigger: true,
+                keyNavEnabled: false,
+                mouseWheelEnabled: false,
+                decimalPrecision: 6,
+                decimalSeparator: '.',
+                listeners: {
+                  //scope: this,
+                  //blur: this.onCalcQty
+                }
+              }, {
+                name: 'FundID',
+                fieldLabel: 'Валюта',
+                xtype: 'combo',
+                store: 'storeFund',
+                displayField: 'name',
+                valueField: 'id',
+                typeAhead: true,
+                queryMode: 'local',
+                allowBlank: false,
+                selectOnFocus: true,
+                labelWidth: 60,
+                labelAlign: 'right'
+              }]
+            }, {
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              items: [{
+                xtype: 'radiogroup',
+                fieldLabel: 'Расчет',
+                allowBlank: false,
+                items: [{
+                  boxLabel: 'Бумага',
+                  name: 'PercEmitent',
+                  margin: '0 15 0 0',
+                  inputValue: '0'
+                }, {
+                  boxLabel: 'Эмитент',
+                  name: 'PercEmitent',
+                  inputValue: '1'
+                }]
+              }]
+            }, {
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              items: [{
+                xtype: 'numberfield',
+                width: 180,
+                minValue: 0,
+                name: 'Lot',
+                fieldLabel: 'Лот',
+                allowBlank: false,
+                hideTrigger: true,
+                keyNavEnabled: false,
+                mouseWheelEnabled: false,
+                decimalPrecision: 0,
+                decimalSeparator: '.',
+                listeners: {
+                  //scope: this,
+                  //blur: this.onCalcQty
+                }
+              }]
+            }, {
+              xtype: 'checkbox',
+              boxLabel: 'T+',
+              inputValue: 1,
+              padding: '0 0 0 85'
+            }, {
+              xtype: 'hidden',
+              name: 'MinDS'
+            }, {
+              xtype: 'fieldcontainer',
+              layout: 'hbox',
+              items: [{
+                xtype: 'displayfield',
+                fieldLabel: 'Деньги',
+                width: 80
+              }, {
+                xtype: 'grid',
+                itemId: 'money',
+                //title: 'test',
+                selModel: {
+                  type: 'checkboxmodel',
+                  checkOnly: false
+                },
+                store: {
+                  xtype: 'store',
+                  fields: ['Name', 'Value'],
+                  data: [{ Name: 'Р/с', Value: 1 }, { Name: 'Б/с', Value: 2 }]
+                },
+                columns: [{
+                  dataIndex: 'Name',
+                  flex: 1
+                }],
+                height: 200,
+                width: 350,
+                padding: '0 0 0 5'
               }]
             }],
             dockedItems: [{
@@ -632,15 +911,70 @@
         this.callParent();
       },
 
-      setActiveRecord: function (record) {
+      setActiveRecord: function (record, tid) {
         this.activeRecord = record;
+        this.tid = tid;
         if (record) {
           this.down('#ok').enable();
           this.down('form').getForm().reset(true).loadRecord(record);
+          //this.onInit();
         } else {
           this.down('#ok').disable();
           this.down('form').getForm().reset();
         }
+      },
+
+      onSetNum: function () {
+        var me = this;
+        var form = me.up('form').getForm();
+        var dt = Ext.Date.clearTime(new Date(), false);
+        var SecID = form.findField('SecurityID').getValue();
+        var Price = form.findField('Price').getValue();
+        var Num = form.findField('Num').getValue();
+        var Qty = form.findField('Qty').getValue();
+        var FundID = form.findField('FundID').getValue();
+        Ext.Ajax.request({
+          url: '@Url.Action("getModDealSetNum")',
+          timeout: 60000,
+          params: {
+            SecurityID: SecID,
+            Qty: Qty,
+            DealDate: dt,
+            Price: Price,
+            Num: Num,
+            FundID: FundID
+          },
+          success: function (response) {
+            var jr = Ext.decode(response.responseText);
+            if (jr.success === true) {
+              form.findField('Num').setValue(Ext.decode(response.responseText).data.Num);
+              form.findField('Qty').setValue(Ext.decode(response.responseText).data.Qty);
+            }
+          },
+          scope: this,
+          failure: function (response) {
+            alert('Ошибка!');
+          }
+
+        });
+      },
+
+      onChangeNumType: function () {
+        var me = this;
+        var form = me.down('form').getForm();
+        var nt = form.findField('NumType').getValue()
+        form.findField('PercType').setDisabled(nt);
+        form.findField('Percent').setDisabled(nt);
+        form.findField('Num').setDisabled(!nt);
+        form.findField('Qty').setVisible(nt);
+        me.down('#bSetNum').setVisible(nt);
+      },
+
+      onChangeDir: function () {
+        var me = this;
+        var form = me.down('form').getForm();
+        var nt = form.findField('Direction').getValue()
+        me.down('#money').setDisabled(!nt);
       },
 
       onShowSec: function () {
@@ -658,7 +992,7 @@
             scope: this,
             sel: function (text, id, fid) {
               var f = this.down('form').getForm();
-              f.findField('secName').setValue(text);
+              f.findField('SecName').setValue(text);
               f.findField('SecurityID').setValue(id);
               //f.findField('FundID').setValue(fid);
               w.close();
@@ -668,18 +1002,43 @@
       },
 
       onSave: function () {
-        var active = this.activeRecord, form = this.down('form').getForm();
-        if (!active) {
-          return;
-        }
+        var me = this;
+        var form = me.down('form').getForm();
+//        var active = this.activeRecord;
+        var params = {};
+        Ext.apply(params, form.getValues(false, false, false, true), me.tid);
         if (form.isValid()) {
+  //        form.updateRecord(active);
+          Ext.Ajax.request({
+            url: '@Url.Action("allocSec")',
+            timeout: 60000,
+            params: params,
+            success: function (response) {
+              var jr = Ext.decode(response.responseText);
+              if (jr.success === true) {
+                alert('Success');
+              };
+              me.hide();
+            },
+            scope: this,
+            failure: function (response) {
+              alert('Ошибка!');
+            }
+          });
+        //var active = this.activeRecord, form = this.down('form').getForm();
+        //if (!active) {
+        //  return;
+        //}
+        //if (form.isValid()) {
+        //  form.updateRecord(active);
+        //  this.fireEvent('update', this, form.getValues(false, false, false, true));
           //if (this.title === 'Добавить')
           //  this.fireEvent('create', this, form.getValues(false, false, false, true));
           //else {
           //  form.updateRecord(active);
           //  this.fireEvent('update');
           //}
-          this.hide();
+        //  this.hide();
         }
       },
 

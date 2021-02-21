@@ -98,39 +98,9 @@ namespace MO5.Models
         public virtual DbSet<tPayment> tPayment { get; set; }
         public virtual DbSet<tBank> tBank { get; set; }
         public virtual DbSet<tRepoPrice> tRepoPrice { get; set; }
-    
-        public virtual ObjectResult<upCheckDecl_Result> upCheckDecl(Nullable<int> investDeclID, Nullable<System.DateTime> dt, Nullable<bool> withMD, Nullable<System.Guid> userID, Nullable<bool> errorsOnly, Nullable<bool> notSelect, Nullable<bool> saveResult)
-        {
-            var investDeclIDParameter = investDeclID.HasValue ?
-                new ObjectParameter("InvestDeclID", investDeclID) :
-                new ObjectParameter("InvestDeclID", typeof(int));
-    
-            var dtParameter = dt.HasValue ?
-                new ObjectParameter("dt", dt) :
-                new ObjectParameter("dt", typeof(System.DateTime));
-    
-            var withMDParameter = withMD.HasValue ?
-                new ObjectParameter("withMD", withMD) :
-                new ObjectParameter("withMD", typeof(bool));
-    
-            var userIDParameter = userID.HasValue ?
-                new ObjectParameter("UserID", userID) :
-                new ObjectParameter("UserID", typeof(System.Guid));
-    
-            var errorsOnlyParameter = errorsOnly.HasValue ?
-                new ObjectParameter("ErrorsOnly", errorsOnly) :
-                new ObjectParameter("ErrorsOnly", typeof(bool));
-    
-            var notSelectParameter = notSelect.HasValue ?
-                new ObjectParameter("NotSelect", notSelect) :
-                new ObjectParameter("NotSelect", typeof(bool));
-    
-            var saveResultParameter = saveResult.HasValue ?
-                new ObjectParameter("SaveResult", saveResult) :
-                new ObjectParameter("SaveResult", typeof(bool));
-    
-            return ((IObjectContextAdapter)this).ObjectContext.ExecuteFunction<upCheckDecl_Result>("upCheckDecl", investDeclIDParameter, dtParameter, withMDParameter, userIDParameter, errorsOnlyParameter, notSelectParameter, saveResultParameter);
-        }
+        public virtual DbSet<tEnregExt> tEnregExt { get; set; }
+        public virtual DbSet<tQuikLimits> tQuikLimits { get; set; }
+        public virtual DbSet<tDepoTreaty> tDepoTreaty { get; set; }
     
         [DbFunction("MiddleOfficeEntities", "tfAddWorkDate")]
         public virtual IQueryable<Nullable<System.DateTime>> tfAddWorkDate(Nullable<System.DateTime> dt, Nullable<int> days)
@@ -204,6 +174,48 @@ namespace MO5.Models
                 new ObjectParameter("UserID", typeof(System.Guid));
     
             return ((IObjectContextAdapter)this).ObjectContext.ExecuteFunction<upCheckDeclModDeal_Result>("upCheckDeclModDeal", createDateParameter, userIDParameter);
+        }
+    
+        public virtual ObjectResult<upCheckDecl_Result> upCheckDecl(Nullable<int> investDeclID, Nullable<System.DateTime> dt, Nullable<bool> withMD, Nullable<System.Guid> userID, Nullable<bool> errorsOnly, Nullable<bool> notSelect, Nullable<bool> saveResult)
+        {
+            var investDeclIDParameter = investDeclID.HasValue ?
+                new ObjectParameter("InvestDeclID", investDeclID) :
+                new ObjectParameter("InvestDeclID", typeof(int));
+    
+            var dtParameter = dt.HasValue ?
+                new ObjectParameter("dt", dt) :
+                new ObjectParameter("dt", typeof(System.DateTime));
+    
+            var withMDParameter = withMD.HasValue ?
+                new ObjectParameter("withMD", withMD) :
+                new ObjectParameter("withMD", typeof(bool));
+    
+            var userIDParameter = userID.HasValue ?
+                new ObjectParameter("UserID", userID) :
+                new ObjectParameter("UserID", typeof(System.Guid));
+    
+            var errorsOnlyParameter = errorsOnly.HasValue ?
+                new ObjectParameter("ErrorsOnly", errorsOnly) :
+                new ObjectParameter("ErrorsOnly", typeof(bool));
+    
+            var notSelectParameter = notSelect.HasValue ?
+                new ObjectParameter("NotSelect", notSelect) :
+                new ObjectParameter("NotSelect", typeof(bool));
+    
+            var saveResultParameter = saveResult.HasValue ?
+                new ObjectParameter("SaveResult", saveResult) :
+                new ObjectParameter("SaveResult", typeof(bool));
+    
+            return ((IObjectContextAdapter)this).ObjectContext.ExecuteFunction<upCheckDecl_Result>("upCheckDecl", investDeclIDParameter, dtParameter, withMDParameter, userIDParameter, errorsOnlyParameter, notSelectParameter, saveResultParameter);
+        }
+    
+        public virtual ObjectResult<upGetEmptyTreaties_Result> upGetEmptyTreaties(Nullable<System.DateTime> dt)
+        {
+            var dtParameter = dt.HasValue ?
+                new ObjectParameter("dt", dt) :
+                new ObjectParameter("dt", typeof(System.DateTime));
+    
+            return ((IObjectContextAdapter)this).ObjectContext.ExecuteFunction<upGetEmptyTreaties_Result>("upGetEmptyTreaties", dtParameter);
         }
     }
 }

@@ -5,6 +5,14 @@
 
 @section scripts {
   <style type="text/css">
+    .upload-icon
+    {
+      background-image: url(@Href("~/Content/images/image_add.png")) !important;
+    }
+    .file-uploads-image-add:before {
+      font: 16px/1 'Font Awesome 5 Free';
+      content: '\f1c5'
+    }
     .icon-refresh
     {
       background-image: url(@Url.Content("~/Scripts/ExtJS62/build/classic/theme-crisp/resources/images/grid/refresh.png")) !important;
@@ -148,6 +156,32 @@
       Ext.create('Ext.data.Store', {
         storeId: 'storeTreaty',
         model: 'Treaty'
+      });
+
+      Ext.define('DepoTreaty', {
+        extend: 'Ext.data.Model',
+        idProperty: 'ID',
+        fields: [
+          { name: 'ID', type: 'int' },
+          { name: 'Number', type: 'string' },
+          { name: 'Client', type: 'string' },
+          { name: 'DateStart', type: 'date', dateFormat: 'c' }
+        ],
+        autoLoad: false,
+        proxy: {
+          type: 'ajax',
+          actionMethods: { read: 'POST' },
+          url: '@Url.Action("getDepoTreatyList")',
+          reader: {
+            type: 'json',
+            rootProperty: 'data'
+          }
+        }
+      });
+
+      Ext.create('Ext.data.Store', {
+        storeId: 'storeDepoTreaty',
+        model: 'DepoTreaty'
       });
 
       Ext.define('PortfolioTreaty', {
@@ -369,7 +403,7 @@
             }, {
               dataIndex: 'FinInstID',
               header: 'ID',
-              width: 20
+              width: 80
             }],
             dockedItems: [{
               xtype: 'toolbar',
@@ -415,9 +449,9 @@
               enableTextSelection: true,
               listeners: {
                 scope: this,
-                beforerender: {
-                  fn: this.onRefreshClick
-                },
+                //beforerender: {
+                //  fn: this.onRefreshClick
+                //},
                 itemdblclick: {
                   fn: this.onSelect
                 },
@@ -555,10 +589,10 @@
                   fieldLabel: 'Окончание'
                 }]
               }, {
-                  name: 'Name',
-                  fieldLabel: 'Наименование',
-                  xtype: 'textfield',
-                  allowBlank: false
+                name: 'Name',
+                fieldLabel: 'Наименование',
+                xtype: 'textfield',
+                allowBlank: false
               }, {
                 xtype: 'fieldcontainer',
                 layout: 'hbox',
@@ -678,7 +712,7 @@
             }, {
               dataIndex: 'TreatyID',
               header: 'ID',
-              width: 30
+              width: 80
             }],
             dockedItems: [{
               xtype: 'toolbar',
@@ -718,9 +752,9 @@
               enableTextSelection: true,
               listeners: {
                 scope: this,
-                beforerender: {
-                  fn: this.onRefreshClick
-                },
+                //beforerender: {
+                //  fn: this.onRefreshClick
+                //},
                 itemdblclick: {
                   fn: this.onSelect
                 },
@@ -757,7 +791,7 @@
         },
 
         onAddClick: function () {
-          var rec = Ext.create('Treaty', { IsDisabled: false, DateStart: Ext.Date.add(Ext.Date.clearTime(new Date(), false), Ext.Date.DAY, 0), DateFinish: Ext.Date.clearTime(new Date(2050,11,31), false) });
+          var rec = Ext.create('Treaty', { IsDisabled: false, DateStart: Ext.Date.add(Ext.Date.clearTime(new Date(), false), Ext.Date.DAY, 0), DateFinish: Ext.Date.clearTime(new Date(2050, 11, 31), false) });
           if (!this.wini) {
             this.onCreateWin();
           }
@@ -820,6 +854,178 @@
         onSelect: function (view, record, item, index, e) {
           this.up('window').fireEvent('sel', record.get('Name'), record.get('TreatyID'));
           return false;
+        }
+      });
+
+      Ext.define('DepoTreatyGrid.Grid', {
+        extend: 'Ext.grid.Panel',
+        alias: 'widget.dtgrid',
+        initComponent: function () {
+          Ext.apply(this, {
+            store: 'storeDepoTreaty',
+            columns: [{
+              dataIndex: 'Number',
+              header: 'Номер',
+              flex: 1
+            }, {
+              dataIndex: 'Client',
+              header: 'Клиент',
+              flex: 3
+            }, {
+              dataIndex: 'DateStart',
+              header: 'Открыт',
+              xtype: 'datecolumn',
+              format: 'd.m.Y',
+              width: 100
+            }, {
+              dataIndex: 'ID',
+              header: 'ID',
+              width: 60
+            }],
+            dockedItems: [{
+              xtype: 'toolbar',
+              dock: 'top',
+              items: [{
+                xtype: 'tbtext',
+                text: ' Поиск: '
+              }, {
+                xtype: 'textfield',
+                itemId: 'tfFind'
+              }, '-', {
+                iconCls: 'icon-refresh',
+                text: 'Обновить',
+                handler: this.onRefreshClick,
+                scope: this
+                }, {
+                  //iconCls: 'icon-refresh',
+                  text: 'Загрузить',
+                  handler: this.onLoadClick,
+                  scope: this
+                }]
+            }],
+            viewConfig: {
+              enableTextSelection: true,
+              listeners: {
+                scope: this,
+                //beforerender: {
+                //  fn: this.onRefreshClick
+                //},
+                itemdblclick: {
+                  fn: this.onSelect
+                },
+                itemclick: {
+                  fn: this.onSelectChange
+                }
+              }
+            }
+          });
+          this.callParent();
+        },
+
+        onRefreshClick: function () {
+          this.store.proxy.extraParams = {
+            filter: this.down('#tfFind').getValue()
+          };
+          this.store.load();
+        },
+
+        onLoadClick: function () {
+          if (!this.winf) {
+            this.winf = Ext.create('File.Win', {
+              scope: this,
+              listeners: {
+                scope: this,
+                add: function () {
+                  this.store.load();
+                }
+              }
+            });
+          }
+          this.winf.show(this);
+        }
+
+      });
+
+      Ext.define('File.Win', {
+        extend: 'Ext.window.Window',
+        alias: 'widget.filewin',
+        initComponent: function () {
+          Ext.apply(this, {
+            title: 'Загрузка договоров Депо',
+            width: 400,
+            closeAction: 'hide',
+            layout: 'fit',
+            modal: true,
+            autoHeight: true,
+            plain: true,
+            buttonAlign: 'center',
+            border: true,
+            items: [{
+              xtype: 'form',
+              bodyPadding: 10,
+              defaults: { anchor: '100%' },
+              defaultType: 'textfield',
+              border: false,
+              waitMsgTarget: true,
+              layoutConfig: { labelSeparator: '' },
+              fieldDefaults: { labelWidth: 100, labelAlign: 'left' },
+              items: [{
+                xtype: 'filefield',
+                emptyText: 'Выбор файла',
+                name: 'fn',
+                fieldLabel: 'Загрузка',
+                hideLabel: true,
+                buttonText: '',
+                buttonConfig: {
+                  iconCls: 'file-uploads-image-add'
+                },
+              }],
+              buttons: [{
+                text: 'Отправить',
+                handler: function () {
+                  var me = this
+                  var form = me.up('form').getForm();
+                  if (form.isValid()) {
+                    form.submit({
+                      url: '@Url.Action("DepoTreatyUpload")',
+                      waitMsg: 'Отправка файла...',
+                      waitMsgTarget: true,
+                      success: function (fp, o) {
+                        alert('Файл "' + o.result.file + '" загружен');
+                        me.up('window').fireEvent('add');
+                        me.up('window').hide();
+                      },
+                      failure: function (fp, o) {
+                        alert('Ошибка');
+                      }
+                    });
+                  }
+                }
+              }, {
+                  text: 'Выход',
+                  scope: this,
+                  handler: this.onExit
+              }],
+              listeners: {
+              }
+            }]
+            //,
+            //dockedItems: [{
+            //  xtype: 'toolbar',
+            //  dock: 'bottom',
+            //  ui: 'footer',
+            //  items: ['->', {
+            //    text: 'Выход',
+            //    scope: this,
+            //    handler: this.onExit
+            //  }]
+            //}]
+          });
+          this.callParent();
+        },
+
+        onExit: function () {
+          this.hide();
         }
       });
 
@@ -1035,7 +1241,7 @@
               header: 'Начало',
               xtype: 'datecolumn',
               format: 'd.m.Y',
-                dataIndex: 'DateStart',
+              dataIndex: 'DateStart',
               width: 100
             }, {
               header: 'Конец',
@@ -1169,7 +1375,7 @@
                 params: { id: selection.get('ID') },
                 success: function (response) {
                   if (Ext.decode(response.responseText).success)
-                    me.store.load(function() { me.getView().refreshSelection() });
+                    me.store.load(function () { me.getView().refreshSelection() });
                   else
                     Ext.Msg.alert('Error', 'Запись не удалена.');
                 },
@@ -1214,8 +1420,8 @@
               renderer: Ext.util.Format.dateRenderer('d.m.Y')
             }, {
               dataIndex: 'Issuer',
-                header: 'Эмитент',
-                width: 300
+              header: 'Эмитент',
+              width: 300
             }, {
               dataIndex: 'IssuerINN',
               header: 'ИНН'
@@ -1240,9 +1446,9 @@
               enableTextSelection: true,
               listeners: {
                 scope: this,
-                beforerender: {
-                  fn: this.onRefreshClick
-                },
+                //beforerender: {
+                //  fn: this.onRefreshClick
+                //},
                 itemdblclick: {
                   fn: this.onSelect
                 }
@@ -1311,9 +1517,9 @@
               enableTextSelection: true,
               listeners: {
                 scope: this,
-                beforerender: {
-                  fn: this.onRefreshClick
-                },
+                //beforerender: {
+                //  fn: this.onRefreshClick
+                //},
                 itemdblclick: {
                   fn: this.onSelect
                 }
@@ -1358,14 +1564,14 @@
               xtype: 'treatygrid',
               store: 'storeTreaty'
             }, {
-                region: 'south',
-                xtype: 'portftreatygrid',
-                store: 'storePortfolioTreaty',
-                height: '20%',
-                itemId: 'portftreaty',
-                border: false,
-                split: true
-              }]
+              region: 'south',
+              xtype: 'portftreatygrid',
+              store: 'storePortfolioTreaty',
+              height: '20%',
+              itemId: 'portftreaty',
+              border: false,
+              split: true
+            }]
           }, {
             itemId: 'tcClient',
             title: 'Клиенты',
@@ -1376,25 +1582,35 @@
               xtype: 'clientgrid',
               store: 'storeClient'
             }]
+          }, {
+            itemId: 'tcEmit',
+            title: 'Эмитенты',
+            tag: 2,
+            layout: 'border',
+            items: [{
+              region: 'center',
+              xtype: 'emitgrid',
+              store: 'storeEmit'
+            }]
+          }, {
+            itemId: 'tcSecurity',
+            title: 'Бумаги',
+            tag: 3,
+            layout: 'border',
+            items: [{
+              region: 'center',
+              xtype: 'secgrid',
+              store: 'storeSec'
+            }]
             }, {
-              itemId: 'tcEmit',
-              title: 'Эмитенты',
-              tag: 2,
+              itemId: 'tcDepoTreaty',
+              title: 'Договоры Депо',
+              tag: 4,
               layout: 'border',
               items: [{
                 region: 'center',
-                xtype: 'emitgrid',
-                store: 'storeEmit'
-              }]
-            }, {
-              itemId: 'tcSecurity',
-              title: 'Бумаги',
-              tag: 3,
-              layout: 'border',
-              items: [{
-                region: 'center',
-                xtype: 'secgrid',
-                store: 'storeSec'
+                xtype: 'dtgrid',
+                store: 'storeDepoTreaty'
               }]
             }],
           listeners: {}

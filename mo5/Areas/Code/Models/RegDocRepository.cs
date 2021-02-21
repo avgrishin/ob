@@ -12,14 +12,14 @@ namespace MO5.Areas.Code.Models
 {
   public interface IRegDocRepository
   {
-    IEnumerable<dynamic> getRegDocList(int? OwnerID, string sort, string dir, DateTime? d1, DateTime? d2, int? type, Boolean? sd, bool? Direction);
+    IEnumerable<dynamic> getRegDocList(int? OwnerID, string sort, string dir, DateTime? d1, DateTime? d2, int? type, Boolean? sd, bool? Direction, string UserName, bool IsAdmin);
     IEnumerable<dynamic> addRegDoc(List<tRegDoc> data, string UserName);
-    IEnumerable<dynamic> updRegDoc(List<tRegDoc> data, string UserName);
-    bool delRegDoc(List<tRegDoc> data);
+    IEnumerable<dynamic> updRegDoc(List<tRegDoc> data, int? OwnerID, string UserName);
+    bool delRegDoc(List<tRegDoc> data, int? OwnerID);
     IGrouping<string, RegDocEmail>[] regdocCourriel(int? id, string host);
     tRegDoc getRegDoc(int? ID);
     IEnumerable<dynamic> getEMailList(string sort, string dir);
-    IEnumerable<dynamic> GetObjClsByParent(int id);
+    IEnumerable<ObjCls> GetObjClsByParent(int id);
 
     string getNextRegNum1();
 
@@ -39,9 +39,17 @@ namespace MO5.Areas.Code.Models
     {
       _configProvider = configProvider;
     }
-    public IEnumerable<dynamic> getRegDocList(int? OwnerID, string sort, string dir, DateTime? d1, DateTime? d2, int? type, Boolean? sd, bool? Direction)
+    public IEnumerable<dynamic> getRegDocList(int? OwnerID, string sort, string dir, DateTime? d1, DateTime? d2, int? type, Boolean? sd, bool? Direction, string UserName, bool IsAdmin)
     {
-      var q1 = db.tRegDoc.Where(p => 1 == 1);
+      var q1 = db.tRegDoc.AsQueryable();
+      if (!IsAdmin)
+      {
+        var email = (from u in db.aspnet_Users
+                     where u.UserName == UserName
+                     select u.aspnet_Membership.Email)
+                        .FirstOrDefault();
+        q1 = q1.Where(p => p.EmailTo.Contains(email) || p.EmailCc.Contains(email));
+      }
       if (OwnerID.HasValue)
         q1 = q1.Where(p => p.InstOwnerID == OwnerID);
       if (Direction.HasValue)
@@ -119,7 +127,9 @@ namespace MO5.Areas.Code.Models
                 i.IsComplaint,
                 i.Direction,
                 i.OrigUserID,
-                OrigUser = li.LName
+                OrigUser = li.LName,
+                i.IsClientP,
+                i.IsComplaintN
               };
       if (sort != null) q = q.OrderBy(sort + (dir == "DESC" ? " descending" : ""));
 
@@ -158,7 +168,9 @@ namespace MO5.Areas.Code.Models
         EmailCcName = string.Join(", ", ql.Where(f => i.EmailCc.IndexOf(f.LName1) > -1).OrderBy(f => f.LName).Select(f => f.LName.Trim()).ToArray()),
         i.Direction,
         i.OrigUserID,
-        i.OrigUser
+        i.OrigUser,
+        i.IsClientP,
+        i.IsComplaintN
       });
     }
 
@@ -211,7 +223,9 @@ namespace MO5.Areas.Code.Models
                 i.IsComplaint,
                 i.Direction,
                 i.OrigUserID,
-                OrigUser = li.LName
+                OrigUser = li.LName,
+                i.IsClientP,
+                i.IsComplaintN
               };
       var ql = db.taLib.Where(p => p.LConcept == 458622 && p.LParent == 458622).Select(p => new { p.LName, p.LName1 });
 
@@ -249,42 +263,49 @@ namespace MO5.Areas.Code.Models
         EmailCcName = string.Join(", ", ql.Where(f => i.EmailCc.IndexOf(f.LName1) > -1).OrderBy(f => f.LName).Select(f => f.LName.Trim()).ToArray()),
         i.Direction,
         i.OrigUserID,
-        i.OrigUser
+        i.OrigUser,
+        i.IsClientP,
+        i.IsComplaintN
       });
     }
 
-    public IEnumerable<dynamic> updRegDoc(List<tRegDoc> data, string UserName)
+    public IEnumerable<dynamic> updRegDoc(List<tRegDoc> data, int? OwnerID, string UserName)
     {
       foreach (var e in data.Where(p => p.Id > 0))
       {
         var q1 = db.tRegDoc.Find(e.Id);
         if (q1 != null)
         {
-          q1.ADate = e.ADate;
-          q1.InstOwnerID = e.InstOwnerID;
-          q1.ANum = e.ANum;
-          q1.Comment = e.Comment;
-          q1.ContrID = e.ContrID;
-          q1.Directed = e.Directed;
-          q1.DocDate = e.DocDate;
-          q1.DocNum = e.DocNum;
-          q1.EmailCc = e.EmailCc;
-          q1.EmailTo = e.EmailTo;
-          q1.FileNameI = e.FileNameI;
-          q1.FileNameO = e.FileNameO;
-          q1.IsAcquaintance = e.IsAcquaintance;
-          q1.IsComplaint = e.IsComplaint;
-          q1.LotusLinkI = e.LotusLinkI;
-          q1.ODate = e.ODate;
-          q1.RegNum = e.RegNum;
-          q1.Resolution = e.Resolution;
-          q1.TDate = e.TDate;
-          q1.Theme = e.Theme;
-          q1.TypeID = e.TypeID;
-          q1.InDateTime = DateTime.Now;
-          q1.UserName = UserName.Left(60);
-          q1.Direction = e.Direction;
-          q1.OrigUserID = e.OrigUserID;
+          if ((OwnerID ?? q1.InstOwnerID) == q1.InstOwnerID)
+          {
+            q1.ADate = e.ADate;
+            q1.InstOwnerID = e.InstOwnerID;
+            q1.ANum = e.ANum;
+            q1.Comment = e.Comment;
+            q1.ContrID = e.ContrID;
+            q1.Directed = e.Directed;
+            q1.DocDate = e.DocDate;
+            q1.DocNum = e.DocNum;
+            q1.EmailCc = e.EmailCc;
+            q1.EmailTo = e.EmailTo;
+            q1.FileNameI = e.FileNameI;
+            q1.FileNameO = e.FileNameO;
+            q1.IsAcquaintance = e.IsAcquaintance;
+            q1.IsComplaint = e.IsComplaint;
+            q1.IsComplaintN = e.IsComplaintN;
+            q1.IsClientP = e.IsClientP;
+            q1.LotusLinkI = e.LotusLinkI;
+            q1.ODate = e.ODate;
+            q1.RegNum = e.RegNum;
+            q1.Resolution = e.Resolution;
+            q1.TDate = e.TDate;
+            q1.Theme = e.Theme;
+            q1.TypeID = e.TypeID;
+            q1.InDateTime = DateTime.Now;
+            q1.UserName = UserName.Left(60);
+            q1.Direction = e.Direction;
+            q1.OrigUserID = e.OrigUserID;
+          }
         }
         db.SaveChanges();
       }
@@ -329,7 +350,9 @@ namespace MO5.Areas.Code.Models
                 i.IsComplaint,
                 i.Direction,
                 i.OrigUserID,
-                OrigUser = li.LName
+                OrigUser = li.LName,
+                i.IsClientP,
+                i.IsComplaintN
               };
 
       var ql = db.taLib.Where(p => p.LConcept == 458622 && p.LParent == 458622).Select(p => new { p.LName, p.LName1 });
@@ -367,17 +390,19 @@ namespace MO5.Areas.Code.Models
         EmailCcName = string.Join(", ", ql.Where(f => i.EmailCc.IndexOf(f.LName1) > -1).OrderBy(f => f.LName).Select(f => f.LName.Trim()).ToArray()),
         i.Direction,
         i.OrigUserID,
-        i.OrigUser
+        i.OrigUser,
+        i.IsClientP,
+        i.IsComplaintN
       });
     }
 
-    public bool delRegDoc(List<tRegDoc> data)
+    public bool delRegDoc(List<tRegDoc> data, int? OwnerID)
     {
       try
       {
         var ids = data.Select(p => p.Id);
-        var e = db.tRegDoc.Where(p => ids.Contains(p.Id));
-        db.tRegDoc.RemoveRange(e);
+        var e = db.tRegDoc.Where(p => ids.Contains(p.Id) && (OwnerID ?? p.InstOwnerID) == p.InstOwnerID);
+        var i = db.tRegDoc.RemoveRange(e);
         db.SaveChanges();
 
         return true;
@@ -436,10 +461,12 @@ namespace MO5.Areas.Code.Models
                      i.DocNum,
                      i.IsAcquaintance,
                      i.IsComplaint,
-                     OrigUser = li.LName
+                     OrigUser = li.LName,
+                     i.IsClientP,
+                     i.IsComplaintN
                    }).ToList())
                from e1 in ((i.EmailTo + "," + i.EmailCc + (
-                i.InstOwnerID == 26187/*ИК*/? _configProvider.GetValue<string>("regdocCourrielIK") : 
+                i.InstOwnerID == 26187/*ИК*/? _configProvider.GetValue<string>("regdocCourrielIK") :
                 i.InstOwnerID == 26188/*УК*/? _configProvider.GetValue<string>("regdocCourrielUK") : "")).Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries).AsQueryable()).Distinct()
                orderby i.TDate
                select new RegDocEmail
@@ -468,7 +495,9 @@ namespace MO5.Areas.Code.Models
                  DocNum = i.DocNum,
                  IsAcquaintance = i.IsAcquaintance,
                  IsComplaint = i.IsComplaint,
-                 OrigUser = i.OrigUser
+                 OrigUser = i.OrigUser,
+                 IsClientP = i.IsClientP,
+                 IsComplaintN = i.IsComplaintN
                }).GroupBy(l => l.EmailTo);
       return q.ToArray();
     }
@@ -511,14 +540,15 @@ namespace MO5.Areas.Code.Models
       return q;
     }
 
-    public IEnumerable<dynamic> GetObjClsByParent(int id)
+    public IEnumerable<ObjCls> GetObjClsByParent(int id)
     {
       return (from oc in db.tObjClassifier
               where oc.ParentID == id
-              select new
+              select new ObjCls
               {
                 id = oc.ObjClassifierID,
-                name = oc.Name
+                name = oc.Name,
+                comment = oc.Comment
               });
     }
 
@@ -570,6 +600,12 @@ namespace MO5.Areas.Code.Models
         return false;
       }
     }
+  }
+  public class ObjCls
+  {
+    public int id { get; set; }
+    public string name { get; set; }
+    public string comment { get; set; }
   }
   public class RegDocModule : NinjectModule
   {

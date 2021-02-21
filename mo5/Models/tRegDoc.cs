@@ -40,6 +40,8 @@ namespace MO5.Models
         public bool Direction { get; set; }
         public Nullable<int> ContrID { get; set; }
         public Nullable<int> OrigUserID { get; set; }
+        public Nullable<bool> IsComplaintN { get; set; }
+        public Nullable<bool> IsClientP { get; set; }
     
         public virtual tObjClassifier tObjClassifier { get; set; }
         public virtual tRegDocContr tRegDocContr { get; set; }

@@ -52,8 +52,8 @@
       proxy: {
         type: 'ajax',
         api: {
-          read: '@Url.Action("getFileList")',
-          destroy: '@Url.Action("delFile")'
+          read: '@Url.Action("getFileList1")',
+          destroy: '@Url.Action("delFile1")'
         },
         actionMethods: { read: 'POST' },
         reader: {
@@ -120,7 +120,7 @@
                 var form = me.up('form').getForm();
                 if (form.isValid()) {
                   form.submit({
-                    url: '@Url.Action("FileUpload")',
+                    url: '@Url.Action("FileUpload1")',
                     waitMsg: 'Отправка файла...',
                     waitMsgTarget: true,
                     success: function (fp, o) {
@@ -225,7 +225,6 @@
           });
         }
         this.winf.show(this);
-
       },
 
       onDeleteClick: function () {
@@ -258,6 +257,10 @@
       alias: 'widget.riskgrid',
       initComponent: function () {
         Ext.apply(this, {
+          selModel: {
+            pruneRemoved: false
+          },
+          loadMask: true,
           dockedItems: [{
             xtype: 'toolbar',
             dock: 'top',
@@ -289,12 +292,13 @@
             sel: function (file) {
               w.close();
               Ext.Ajax.request({
-                url: '@Url.Action("excel")',
+                url: '@Url.Action("excel1")',
                 timeout: 60000,
                 params: {
                   FileName: file
                 },
                 success: function (response) {
+                  me.el.mask("Загрузка");
                   var jr = Ext.decode(response.responseText)
                   if (jr.success === true) {
                     var columns = [];
@@ -309,8 +313,9 @@
                     });
                     var store = Ext.data.StoreManager.lookup('storeData');
                     store.setFields(fields);
-                    store.setData(jr.body);
+                    store.loadData(jr.body);
                     me.reconfigure(store, columns);
+                    me.el.unmask();
                   }
                 },
                 failure: function (response) {

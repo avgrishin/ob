@@ -21,6 +21,7 @@ namespace MO5.Models
             this.tModDeal = new HashSet<tModDeal>();
             this.tQuikDeal = new HashSet<tQuikDeal>();
             this.tTreatyCode = new HashSet<tTreatyCode>();
+            this.tEnregistrement = new HashSet<tEnregistrement>();
         }
     
         public int TreatyID { get; set; }
@@ -30,6 +31,7 @@ namespace MO5.Models
         public Nullable<System.DateTime> DateStart { get; set; }
         public Nullable<System.DateTime> DateFinish { get; set; }
         public Nullable<int> State { get; set; }
+        public Nullable<System.DateTime> DateInvest { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<tPortfolioTreaty> tPortfolioTreaty { get; set; }
@@ -40,5 +42,7 @@ namespace MO5.Models
         public virtual ICollection<tQuikDeal> tQuikDeal { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<tTreatyCode> tTreatyCode { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<tEnregistrement> tEnregistrement { get; set; }
     }
 }

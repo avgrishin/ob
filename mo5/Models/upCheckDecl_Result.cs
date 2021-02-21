@@ -13,10 +13,12 @@ namespace MO5.Models
     
     public partial class upCheckDecl_Result
     {
+        public Nullable<System.DateTime> Dt { get; set; }
         public Nullable<int> FinInstID { get; set; }
         public Nullable<int> InvestDeclWhereID { get; set; }
         public string NameWhere { get; set; }
         public string fiName { get; set; }
+        public string trName { get; set; }
         public Nullable<int> FLAG_Group { get; set; }
         public string FGName { get; set; }
         public Nullable<int> FLAG_Calculation { get; set; }
@@ -31,6 +33,7 @@ namespace MO5.Models
         public Nullable<double> Course { get; set; }
         public Nullable<double> Qty { get; set; }
         public Nullable<double> coefS { get; set; }
-        public int error { get; set; }
+        public Nullable<int> error { get; set; }
+        public string tcCode { get; set; }
     }
 }

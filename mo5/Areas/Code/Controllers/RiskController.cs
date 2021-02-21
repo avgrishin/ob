@@ -17,7 +17,8 @@ namespace MO5.Areas.Code.Controllers
   public class RiskController : Controller
   {
     private readonly IRiskRepository _riskRepository;
-    private readonly string _prefix = @"c:\data\Risk";
+    private readonly string _prefix1 = @"c:\data\Risk";
+    private readonly string _prefix2 = @"c:\data\Risk1";
     public RiskController(IRiskRepository riskRepository)
     {
       _riskRepository = riskRepository;
@@ -257,7 +258,7 @@ namespace MO5.Areas.Code.Controllers
       ms.Position = 0;
       SmtpClient sc = new SmtpClient();
       MailMessage message = new MailMessage();
-      message.From = new MailAddress(ConfigurationManager.AppSettings["EMailFrom"], "Внутренний контроль");
+      message.From = new MailAddress(ConfigurationManager.AppSettings["EMailFrom"], "Риск-менеджер");
       message.To.Add(((HttpContext.Request).Url.Authority.Contains("localhost")) ? "qbcontrol@qbfin.ru" : "georgiy.dandov@qbfin.ru,vlada.bytkovskay@qbfam.ru,stanislav.matyukhin@qbfin.ru,Dmitriy.Levin@qbfin.ru,anastasia.koval@qbfin.ru");
       message.CC.Add("qbcontrol@qbfin.ru");
       message.Body = "";
@@ -287,17 +288,34 @@ namespace MO5.Areas.Code.Controllers
     {
       public string Name { get; set; }
     }
-    public ActionResult getFileList()
+    public ActionResult getFileList1()
     {
-      var d = Directory.GetFiles(_prefix, "*.xlsx", SearchOption.TopDirectoryOnly).Select(p => new f { Name = Path.GetFileName(p) });
+      return getFileList(_prefix1);
+    }
+    public ActionResult getFileList2()
+    {
+      return getFileList(_prefix2);
+    }
+    private ActionResult getFileList(string prefix)
+    {
+      var d = Directory.GetFiles(prefix, "*.xlsx", SearchOption.TopDirectoryOnly).Select(p => new f { Name = Path.GetFileName(p) });
       return new JsonnResult { Data = new { data = d } };
     }
     [HttpPost]
-    public ActionResult FileUpload(HttpPostedFileBase fn)
+    public ActionResult FileUpload1(HttpPostedFileBase fn)
+    {
+      return FileUpload(fn, _prefix1);
+    }
+    [HttpPost]
+    public ActionResult FileUpload2(HttpPostedFileBase fn)
+    {
+      return FileUpload(fn, _prefix2);
+    }
+    public ActionResult FileUpload(HttpPostedFileBase fn, string prefix)
     {
       if (fn != null && fn.ContentLength > 0)
       {
-        var path = Path.Combine(_prefix, fn.FileName);
+        var path = Path.Combine(prefix, fn.FileName);
         if (System.IO.File.Exists(path))
           System.IO.File.Delete(path);
         fn.SaveAs(path);
@@ -306,13 +324,23 @@ namespace MO5.Areas.Code.Controllers
       return new JsonnResult { Data = new { success = false, message = "Нет файла" }, ContentType = "text/html" };
     }
 
-    public ActionResult delFile(List<f> data)
+    [HttpPost]
+    public ActionResult delFile1(List<f> data)
+    {
+      return delFile(data, _prefix1);
+    }
+    [HttpPost]
+    public ActionResult delFile2(List<f> data)
+    {
+      return delFile(data, _prefix2);
+    }
+    public ActionResult delFile(List<f> data, string prefix)
     {
       try
       {
-        foreach(var d in data)
+        foreach (var d in data)
         {
-          System.IO.File.Delete(Path.Combine(_prefix, d.Name));
+          System.IO.File.Delete(Path.Combine(prefix, d.Name));
         }
         return new JsonnResult { Data = new { success = true } };
       }
@@ -322,19 +350,28 @@ namespace MO5.Areas.Code.Controllers
       }
     }
 
-    [ActionName("excel")]
-    public ActionResult GetExcelFileStore(string FileName)
+    [ActionName("excel1")]
+    public ActionResult GetExcelFileStore1(string FileName)
     {
-      var workbook = new XLWorkbook(Path.Combine(_prefix, FileName));
+      return GetExcelFileStore(FileName, _prefix1, 1);
+    }
+    [ActionName("excel2")]
+    public ActionResult GetExcelFileStore2(string FileName)
+    {
+      return GetExcelFileStore(FileName, _prefix2, 2);
+    }
+    private ActionResult GetExcelFileStore(string FileName, string prefix, int firstRow)
+    {
+      var workbook = new XLWorkbook(Path.Combine(prefix, FileName));
       var ws = workbook.Worksheets.FirstOrDefault();
       var h = new List<string>();
-      var lastColumn = ws.Row(1).LastCellUsed().Address.ColumnNumber;
+      var lastColumn = ws.Row(firstRow).LastCellUsed().Address.ColumnNumber;
       var lastRow = ws.Column(1).LastCellUsed().Address.RowNumber;
       for (var i = 1; i <= lastColumn; i++)
-        h.Add(ws.Cell(1, i).GetString());
+        h.Add(ws.Cell(firstRow, i).GetString());
       var d = new List<string[]>();
       var row = new List<string>(lastColumn);
-      for (var r = 2; r <= lastRow; r++)
+      for (var r = firstRow + 1; r <= lastRow; r++)
       {
         for (var c = 1; c <= lastColumn; c++)
         {
@@ -345,5 +382,50 @@ namespace MO5.Areas.Code.Controllers
       }
       return new JsonnResult { Data = new { success = true, header = h.ToArray(), body = d.ToArray() } };
     }
+
+    public ActionResult SendMarketRisks()
+    {
+      return SendRisks(_prefix1, "Рыночные риски");
+    }
+    public ActionResult SendLiquid()
+    {
+      return SendRisks(_prefix2, "Ликвидность");
+    }
+    private ActionResult SendRisks(string prefix, string subject)
+    {
+      var d = Directory.GetFiles(prefix, "*.xlsx", SearchOption.TopDirectoryOnly).OrderByDescending(p => Path.GetFileName(p)).FirstOrDefault();
+      if (!string.IsNullOrEmpty(d))
+      {
+        SmtpClient sc = new SmtpClient();
+        MailMessage message = new MailMessage();
+        message.From = new MailAddress(ConfigurationManager.AppSettings["EMailFrom"], "Риск-менеджер");
+        message.To.Add(((HttpContext.Request).Url.Authority.Contains("localhost")) ? "qbcontrol@qbfin.ru" : "georgiy.dandov@qbfin.ru,vlada.bytkovskay@qbfam.ru,stanislav.matyukhin@qbfin.ru,anastasia.koval@qbfin.ru");
+        message.CC.Add("qbcontrol@qbfin.ru");
+        message.Body = "";
+        message.IsBodyHtml = true;
+        message.Priority = MailPriority.High;
+        message.Headers.Add("Importance", "High");
+        message.IsBodyHtml = true;
+        message.Subject = subject;
+        message.Attachments.Add(new Attachment(d));
+        try
+        {
+          sc.Send(message);
+        }
+        catch (Exception ex)
+        {
+          return new JsonnResult { Data = new { success = false, message = ex.Message } };
+        }
+        return new JsonnResult { Data = new { success = true } };
+      }
+      return new JsonnResult { Data = new { success = false, message = "Файл не найден" } };
+    }
+
+    public ActionResult liquid()
+    {
+      return View();
+    }
+
+
   }
 }

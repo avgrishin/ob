@@ -1,0 +1,362 @@
+﻿@{
+  ViewBag.Title = "Ликвидность";
+  Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section scripts {
+  <style type="text/css">
+    .icon-add
+    {
+      background-image: url(@Href("~/Content/images/add.png")) !important;
+    }
+    .icon-save
+    {
+      background-image: url(@Href("~/Content/images/save.gif")) !important;
+    }
+    .upload-icon
+    {
+      background-image: url(@Href("~/Content/images/image_add.png")) !important;
+    }
+    .icon-delete
+    {
+      background-image: url(@Href("~/Content/images/delete.png")) !important;
+    }
+    .icon-refresh
+    {
+      background-image: url(@Href("~/Scripts/ExtJS62/build/classic/theme-gray/resources/images/grid/refresh.gif")) !important;
+    }
+    td.wrap-text div {
+      white-space: normal;
+    }
+    .x-grid-row-summary .x-grid-cell-inner {
+      font-weight: bold;
+      font-size: 11px;
+      color: #616161;
+      font: bold 11px/13px tahoma, arial, verdana, sans-serif
+    }
+  </style>
+  <link rel="stylesheet" type="text/css" href="~/Scripts/ExtJS62/build/classic/theme-gray/resources/theme-gray-all.css" />
+  <script type="text/javascript" src="~/Scripts/ExtJS62/ext-bootstrap.js"></script>
+  <script type="text/javascript" src="~/Scripts/ExtJS62/build/classic/locale/locale-ru.js"></script>
+  <script type="text/javascript" src="~/Scripts/ExtJS62/ux/Exporter.js"></script>
+  <script type="text/javascript">
+
+    Ext.create('Ext.data.Store', {
+      autoSync: false,
+      autoLoad: false,
+      idProperty: 'Name',
+      storeId: 'storeFile',
+      fields: [
+        { name: 'Name' }
+      ],
+      proxy: {
+        type: 'ajax',
+        api: {
+          read: '@Url.Action("getFileList2")',
+          destroy: '@Url.Action("delFile2")'
+        },
+        actionMethods: { read: 'POST' },
+        reader: {
+          type: 'json',
+          rootProperty: 'data',
+          totalProperty: 'totalCount'
+        },
+        writer: {
+          type: 'json',
+          rootProperty: 'data',
+          writeAllFields: true,
+          allowSingle: false,
+          encode: false
+        },
+        simpleSortMode: true
+      }
+    });
+
+    Ext.create('Ext.data.Store', {
+      autoSync: false,
+      autoLoad: false,
+      idProperty: 'F1',
+      storeId: 'storeData'
+    });
+
+    Ext.define('File.Win', {
+      extend: 'Ext.window.Window',
+      alias: 'widget.filewin',
+      initComponent: function () {
+        Ext.apply(this, {
+          activeRecord: null,
+          fileurl: null,
+          width: 500,
+          closeAction: 'hide',
+          layout: 'fit',
+          modal: true,
+          autoHeight: true,
+          plain: true,
+          buttonAlign: 'center',
+          border: true,
+          items: [{
+            xtype: 'form',
+            bodyPadding: 10,
+            defaults: { anchor: '100%' },
+            defaultType: 'textfield',
+            border: false,
+            waitMsgTarget: true,
+            layoutConfig: { labelSeparator: '' },
+            fieldDefaults: { labelWidth: 100, labelAlign: 'left' },
+            items: [{
+              xtype: 'filefield',
+              emptyText: 'Выбор файла',
+              name: 'fn',
+              fieldLabel: 'Загрузка',
+              buttonText: '',
+              buttonConfig: {
+                iconCls: 'upload-icon'
+              }
+            }],
+            buttons: [{
+              text: 'Загрузить',
+              handler: function () {
+                var me = this
+                var form = me.up('form').getForm();
+                if (form.isValid()) {
+                  form.submit({
+                    url: '@Url.Action("FileUpload2")',
+                    waitMsg: 'Отправка файла...',
+                    waitMsgTarget: true,
+                    success: function (fp, o) {
+                      alert('Файл "' + o.result.file + '" загружен');
+                      me.up('window').fireEvent('add');
+                      me.up('window').hide();
+                    },
+                    failure: function (fp, o) {
+                      alert('Ошибка');
+                    }
+                  });
+                }
+              }
+            }],
+            listeners: {
+            }
+          }],
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'bottom',
+            ui: 'footer',
+            items: ['->', {
+              text: 'Выход',
+              scope: this,
+              handler: this.onExit
+            }]
+          }]
+        });
+        this.callParent();
+      },
+
+      onExit: function () {
+        this.hide();
+      }
+    });
+
+    Ext.define('File.Grid', {
+      extend: 'Ext.grid.Panel',
+      alias: 'widget.filegrid',
+      initComponent: function () {
+        Ext.apply(this, {
+          store: 'storeFile',
+          columns: [{
+            dataIndex: 'Name',
+            //header: 'Наименование',
+            flex: 1
+          }],
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'top',
+            items: [{
+              iconCls: 'icon-refresh',
+              itemId: 'refresh',
+              text: 'Обновить',
+              handler: this.onRefreshClick,
+              scope: this
+            }, {
+              iconCls: 'icon-add',
+              text: 'Добавить',
+              scope: this,
+              handler: this.onAddClick
+            }, {
+              iconCls: 'icon-delete',
+              text: 'Удалить',
+              disabled: true,
+              itemId: 'delete',
+              scope: this,
+              handler: this.onDeleteClick
+            }]
+          }],
+          viewConfig: {
+            enableTextSelection: true,
+            listeners: {
+              scope: this,
+              beforerender: this.onRefreshClick,
+              itemdblclick:  this.onSelect,
+              selectionchange: this.onSelectChange
+            }
+          }
+        });
+        this.callParent();
+      },
+
+      onRefreshClick: function () {
+        this.store.load();
+      },
+
+      onSelectChange: function (selModel, selections) {
+        this.down('#delete').setDisabled(selections.length === 0);
+      },
+
+      onAddClick: function () {
+        if (!this.winf) {
+          this.winf = Ext.create('File.Win', {
+            scope: this,
+            listeners: {
+              scope: this,
+              add: function () {
+                this.store.load();
+              }
+            }
+          });
+        }
+        this.winf.show(this);
+      },
+
+      onDeleteClick: function () {
+        var me = this;
+        var selection = this.getView().getSelectionModel().getSelection()[0];
+        if (selection) {
+          if (window.confirm('Удалить файл?')) {
+            selection.dropped = true;
+            selection.save({
+              success: function () {
+                me.store.remove(selection);
+              },
+              failure: function () {
+                selection.dropped = false;
+                alert('Запись не удалена');
+              }
+            });
+          }
+        }
+      },
+
+      onSelect: function (view, record, item, index, e) {
+        this.up('window').fireEvent('sel', record.get('Name'));
+        return false;
+      }
+    });
+
+    Ext.define('Risk.Grid', {
+      extend: 'Ext.grid.Panel',
+      alias: 'widget.riskgrid',
+      initComponent: function () {
+        Ext.apply(this, {
+          selModel: {
+            pruneRemoved: false
+          },
+          loadMask: true,
+          dockedItems: [{
+            xtype: 'toolbar',
+            dock: 'top',
+            items: [{
+              text: 'Файл',
+              //disabled: true,
+              itemId: 'file',
+              scope: this,
+              handler: this.onFileClick
+            }]
+          }]
+        });
+        this.callParent();
+      },
+
+      onFileClick: function () {
+        var me = this;
+        var w = Ext.create('Ext.window.Window', {
+          scope: me,
+          title: 'Выбрать файл',
+          modal: true,
+          width: 500,
+          layout: 'fit',
+          items: [{
+            xtype: 'filegrid'
+          }],
+          listeners: {
+            scope: this,
+            sel: function (file) {
+              w.close();
+              Ext.Ajax.request({
+                url: '@Url.Action("excel2")',
+                timeout: 60000,
+                params: {
+                  FileName: file
+                },
+                success: function (response) {
+                  me.el.mask("Загрузка");
+                  var jr = Ext.decode(response.responseText)
+                  if (jr.success === true) {
+                    var columns = [];
+                    var fields = [];
+                    Ext.Array.forEach(jr.header, function (item, index) {
+                      columns.push({
+                        dataIndex: 'F' + index,
+                        header: item,
+                        flex: index == 2 ? 2 : 1
+                      });
+                      fields.push('F' + index);
+                    });
+                    var store = Ext.data.StoreManager.lookup('storeData');
+                    store.setFields(fields);
+                    store.loadData(jr.body);
+                    me.reconfigure(store, columns);
+                    me.el.unmask();
+                  }
+                },
+                failure: function (response) {
+                  var text = response.responseText;
+                  Bank.setDisabled(false);
+                  KAcc.setDisabled(false);
+                  alert('Ошибка!');
+                }
+              });
+            }
+          }
+        }).show(this);
+      }
+    });
+
+    Ext.onReady(function () {
+      Ext.tip.QuickTipManager.init();
+      Ext.create('Ext.Viewport', {
+        layout: 'border',
+        items: [{
+          region: 'north',
+          border: false,
+          contentEl: 'header'
+        }, {
+            xtype: 'tabpanel',
+            tabPosition: 'top',
+            region: 'center',
+            activeTab: 0,
+            frame: false,
+            items: [{
+              title: 'Данные',
+              layout: 'border',
+              items: [{
+                region: 'center',
+                tag: 1,
+                xtype: 'riskgrid'
+              }]
+            }]
+          }]
+        })
+      });
+
+  </script>
+}

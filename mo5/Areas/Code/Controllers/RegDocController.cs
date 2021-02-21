@@ -24,37 +24,50 @@ namespace MO5.Areas.Code.Controllers
       _configProvider = configProvider;
     }
 
-    [Authorize(Roles = "regdoc")]
+    [Authorize(Roles = "regdoc, regdocik, regdocuk")]
     public ActionResult Index()
     {
       return View();
     }
 
-    [Authorize(Roles = "regdoc")]
+    [Authorize(Roles = "regdoc, regdocik, regdocuk")]
     public ActionResult getRegDocList(int? OwnerID, string sort, string dir, DateTime? d1, DateTime? d2, int? type, Boolean? sd, bool? Direction)
     {
-      return new JsonnResult { Data = new { success = true, data = regdocRepository.getRegDocList(OwnerID, sort ?? "Id", dir ?? "DESC", d1, d2, type, sd, Direction) } };
+      OwnerID = GetOwner(OwnerID);
+      return new JsonnResult { Data = new { success = true, data = regdocRepository.getRegDocList(OwnerID, sort ?? "Id", dir ?? "DESC", d1, d2, type, sd, Direction, UserName, User.IsInRole("Admin")) } };
     }
-
-    [Authorize(Roles = "regdoc")]
+    private int? GetOwner(int? OwnerID)
+    {
+      var q = regdocRepository.GetObjClsByParent(26186);
+      return User.IsInRole("regdocik") ? q.Where(p => p.comment == "IK").Select(p => p.id).First()
+        : User.IsInRole("regdocuk") ? q.Where(p => p.comment == "UK").Select(p => p.id).First() : OwnerID;
+    }
+    [Authorize(Roles = "regdoc, regdocik, regdocuk")]
     public ActionResult addRegDoc(List<tRegDoc> data)
     {
+      var OwnerID = GetOwner(null);
+      if (OwnerID.HasValue)
+      {
+        data = data.Where(p => p.InstOwnerID == OwnerID).ToList();
+      }
       return new JsonnResult { Data = new { success = true, data = regdocRepository.addRegDoc(data, User.Identity.Name) } };
     }
 
-    [Authorize(Roles = "regdoc")]
+    [Authorize(Roles = "regdoc, regdocik, regdocuk")]
     public ActionResult updRegDoc(List<tRegDoc> data)
     {
-      return new JsonnResult { Data = new { success = true, data = regdocRepository.updRegDoc(data, User.Identity.Name) } };
+      var OwnerID = GetOwner(null);
+      return new JsonnResult { Data = new { success = true, data = regdocRepository.updRegDoc(data, OwnerID, User.Identity.Name) } };
     }
 
-    [Authorize(Roles = "regdoc")]
+    [Authorize(Roles = "regdoc, regdocik, regdocuk")]
     public ActionResult delRegDoc(List<tRegDoc> data)
     {
-      return new JsonnResult { Data = new { success = true, data = regdocRepository.delRegDoc(data) } };
+      var OwnerID = GetOwner(null);
+      return new JsonnResult { Data = new { success = true, data = regdocRepository.delRegDoc(data, OwnerID) } };
     }
 
-    [Authorize(Roles = "regdoc")]
+    [Authorize(Roles = "regdoc, regdocik, regdocuk")]
     public ActionResult regdocCourriel(int? id)
     {
       var q = regdocRepository.regdocCourriel(id, (HttpContext.Request).Url.Authority);
@@ -88,19 +101,25 @@ namespace MO5.Areas.Code.Controllers
       return new JsonnResult { Data = new { success = false } };
     }
 
-    [Authorize(Roles = "regdoc")]
+    [Authorize(Roles = "regdoc, regdocik, regdocuk")]
     public ActionResult getEMailList(string sort, string dir)
     {
       return new JsonnResult { Data = new { success = true, data = regdocRepository.getEMailList(sort, dir) } };
     }
 
-    [Authorize(Roles = "regdoc")]
+    [Authorize(Roles = "regdoc, regdocik, regdocuk")]
     public ActionResult GetObjClsByParent(int id)
     {
       return new JsonnResult { Data = new { success = true, data = regdocRepository.GetObjClsByParent(id) } };
     }
 
-    [Authorize(Roles = "regdoc")]
+    [Authorize(Roles = "regdoc, regdocik, regdocuk")]
+    public ActionResult GetOwners()
+    {
+      return new JsonnResult { Data = new { success = true, data = regdocRepository.GetObjClsByParent(26186).Where(p => !User.IsInRole("regdocik") || p.comment == "IK").Where(p => !User.IsInRole("regdocuk") || p.comment == "UK") } };
+    }
+
+    [Authorize(Roles = "regdoc, regdocik, regdocuk")]
     public ActionResult FileUploadI(int? Id, HttpPostedFileBase FileName)
     {
       if (FileName != null && FileName.ContentLength > 0)
@@ -149,7 +168,7 @@ namespace MO5.Areas.Code.Controllers
       }
     }
 
-    [Authorize(Roles = "regdoc")]
+    [Authorize(Roles = "regdoc, regdocik, regdocuk")]
     public ActionResult FileUploadO(int? Id, HttpPostedFileBase FileName)
     {
       if (FileName != null && FileName.ContentLength > 0)
@@ -198,31 +217,31 @@ namespace MO5.Areas.Code.Controllers
       }
     }
 
-    [Authorize(Roles = "regdoc")]
+    [Authorize(Roles = "regdoc, regdocik, regdocuk")]
     public ActionResult getNextRegNum()
     {
       return Content(regdocRepository.getNextRegNum1());
     }
 
-    [Authorize(Roles = "regdoc")]
+    [Authorize(Roles = "regdoc, regdocik, regdocuk")]
     public ActionResult getRegDocContrList(string filter, string sort, string dir)
     {
       return new JsonnResult { Data = new { success = true, data = regdocRepository.getRegDocContrList(filter, sort, dir) } };
     }
 
-    [Authorize(Roles = "regdoc")]
+    [Authorize(Roles = "regdoc, regdocik, regdocuk")]
     public ActionResult addRegDocContr(List<tRegDocContr> data)
     {
       return new JsonnResult { Data = new { success = true, data = regdocRepository.addRegDocContr(data) } };
     }
 
-    [Authorize(Roles = "regdoc")]
+    [Authorize(Roles = "regdoc, regdocik, regdocuk")]
     public ActionResult updRegDocContr(List<tRegDocContr> data)
     {
       return new JsonnResult { Data = new { success = true, data = regdocRepository.updRegDocContr(data) } };
     }
 
-    [Authorize(Roles = "regdoc")]
+    [Authorize(Roles = "regdoc, regdocik, regdocuk")]
     public ActionResult delRegDocContr(List<tRegDocContr> data)
     {
       return new JsonnResult { Data = new { success = true, data = regdocRepository.delRegDocContr(data) } };

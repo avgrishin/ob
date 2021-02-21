@@ -19,6 +19,7 @@ namespace MO5.Models
         {
             this.tEnregSteps1 = new HashSet<tEnregSteps>();
             this.tEnregistrementLog = new HashSet<tEnregistrementLog>();
+            this.tPayment = new HashSet<tPayment>();
         }
     
         public int ID { get; set; }
@@ -61,5 +62,9 @@ namespace MO5.Models
         public virtual ICollection<tEnregSteps> tEnregSteps1 { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<tEnregistrementLog> tEnregistrementLog { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<tPayment> tPayment { get; set; }
+        public virtual tTreaty tTreaty { get; set; }
+        public virtual tEnregExt tEnregExt { get; set; }
     }
 }

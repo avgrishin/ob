@@ -1,0 +1,99 @@
+﻿@model MO5.Areas.Code.Models.PaymentDoc
+@{
+  Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+  <meta http-equiv=Content-Type content="text/html; charset=utf-8" />
+  <meta name="viewport" content="width=device-width" />
+  <style>
+    .table1 tr td {
+      padding: 10px 0 0 0;
+    }
+
+    .table tr td {
+      border-top: 1px solid black;
+      border-left: 1px solid black;
+      padding: 3px;
+    }
+
+      .table tr td:last-child {
+        border-right: 1px solid black;
+      }
+
+    .table tr:last-child td {
+      border-bottom: 1px solid black;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <p style="text-align:right;">
+      <b>
+        <i>
+          Приложение №7
+          <br />
+          <br />
+          к Договору доверительного управления ценными бумагами
+          <br />
+          и средствами инвестирования в ценные бумаги
+        </i>
+      </b>
+    </p>
+    <p>&nbsp;</p>
+    <p style="text-align:center">
+      <b>
+        Распоряжение<br />
+        о возврате имущества<br />
+        по Договору № @Model.Treaty от @(Model.TreatyDate?.ToString("dd.MM.yyyy"))
+      </b>
+    </p>
+    <p>&nbsp;</p>
+    <p>
+      Настоящим Учредитель управления <u>@Model.Client</u>, предъявляет требование о возврате из доверительного управления в порядке и сроки, установленные Договором, следующего имущества:
+    </p>
+    <p class="text"><input type="checkbox" @(Model.Amount > 0 ? "checked" : "")> Денежных средств, в размере @(Model.Amount > 0 ? $"{Model.Amount:N2} рублей" : "__________") (_______________________________) </p>
+    <p class="text"><input type="checkbox" @(!(Model.Amount > 0) ? "checked" : "")> Всего имущества </p>
+    <p class="text"><input type="checkbox"> Ценных бумаг </p>
+    <p><b>Реквизиты для перевода денежных средств:</b></p>
+    <table class="table" cellspacing="0" width="100%">
+      <tr><td>Получатель</td><td>@Model.NameO</td></tr>
+      <tr><td>ИНН получателя</td><td>@Model.INNO</td></tr>
+      <tr><td>Номер счета получателя</td><td>@Model.RAccO</td></tr>
+      <tr><td>Банк получателя</td><td>@Model.BankO</td></tr>
+      <tr><td>БИК</td><td>@Model.BICO</td></tr>
+      <tr><td>Корр. счет</td><td>@Model.KAccO</td></tr>
+      <tr><td>Назначение платежа</td><td>@Model.Reference</td></tr>
+    </table>
+    <p><b>Реквизиты для перевода ценных бумаг:</b></p>
+    <table class="table" cellspacing="0" width="100%">
+      <tr>
+        <td style="text-align:center">Наименование ценных бумаг</td>
+        <td style="text-align:center">Вид ценных бумаг</td>
+        <td style="text-align:center">Номинальная стоимость, валюта</td>
+        <td style="text-align:center">Гос. рег. номер выпуска/ правил ДУ и/или ISIN</td>
+        <td style="text-align:center">Количество</td>
+      </tr>
+      <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr>
+    </table>
+    <p><b>Информация о счете зачисления ценных бумаг:</b></p>
+    <table class="table" cellspacing="0" width="100%">
+      <tr><td>Наименование депозитария</td><td width="20%">&nbsp;</td><td>Номер счета депо / раздела счета депо</td><td width="20%">&nbsp;</td></tr>
+      <tr><td colspan="2">Реквизиты получателя (наименование, код, номер счета/раздела)</td><td colspan="2">&nbsp;</td></tr>
+    </table>
+    <p><b>Подпись Учредителя Управления</b></p>
+    <p>&nbsp;</p>
+    <p>______________/________________________________</p>
+    <p><b>Для служебных отметок:</b></p>
+    <div style="border:1px solid black;padding:6px">
+      <p>Входящий №_______________ Дата приема «____» ___________20__г. </p>
+      <p>Время ____час ___ мин</p>
+      <p>Сотрудник, зарегистрировавший Распоряжение</p>
+      <p>______________________/________________________</p>
+    </div>
+  </div>
+</body>
+</html>

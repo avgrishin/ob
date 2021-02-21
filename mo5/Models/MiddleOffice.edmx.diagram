@@ -33,7 +33,7 @@
         <AssociationConnector Association="MiddleOfficeModel.FK_tSecurity_tFinInst" />
         <EntityTypeShape EntityType="MiddleOfficeModel.tFinInstGroup" Width="1.5" PointX="6.5" PointY="8.875" IsExpanded="false" />
         <EntityTypeShape EntityType="MiddleOfficeModel.tWarrant" Width="1.5" PointX="5.375" PointY="11.75" IsExpanded="false" />
-        <EntityTypeShape EntityType="MiddleOfficeModel.tRegDoc" Width="1.5" PointX="7.375" PointY="11.75" IsExpanded="false" />
+        <EntityTypeShape EntityType="MiddleOfficeModel.tRegDoc" Width="1.5" PointX="7.375" PointY="11.75" IsExpanded="true" />
         <EntityTypeShape EntityType="MiddleOfficeModel.tSecType" Width="1.5" PointX="9.375" PointY="11.75" IsExpanded="false" />
         <EntityTypeShape EntityType="MiddleOfficeModel.tEnvoi" Width="1.5" PointX="9.75" PointY="18.75" IsExpanded="false" />
         <AssociationConnector Association="MiddleOfficeModel.FK_tEnvoi_tFinInst" />
@@ -106,10 +106,10 @@
         <AssociationConnector Association="MiddleOfficeModel.FK_tEnregistrement_tObjClassifier1" />
         <EntityTypeShape EntityType="MiddleOfficeModel.tEnregDTSteps" Width="1.5" PointX="13" PointY="0.5" IsExpanded="false" />
         <AssociationConnector Association="MiddleOfficeModel.FK_tEnregDTSteps_tObjClassifier" />
-        <EntityTypeShape EntityType="MiddleOfficeModel.tEnregSteps" Width="1.5" PointX="15.375" PointY="28.5" />
+        <EntityTypeShape EntityType="MiddleOfficeModel.tEnregSteps" Width="1.5" PointX="15.375" PointY="28.5" IsExpanded="false" />
         <AssociationConnector Association="MiddleOfficeModel.FK_tEnregistrement_tEnregSteps" />
         <AssociationConnector Association="MiddleOfficeModel.FK_tEnregSteps_tEnregistrement" />
-        <EntityTypeShape EntityType="MiddleOfficeModel.tEnregistrementLog" Width="1.5" PointX="17.625" PointY="28.5" />
+        <EntityTypeShape EntityType="MiddleOfficeModel.tEnregistrementLog" Width="1.5" PointX="17.625" PointY="28.5" IsExpanded="false" />
         <AssociationConnector Association="MiddleOfficeModel.FK_tEnregistrementLog_tEnregistrement" />
         <AssociationConnector Association="MiddleOfficeModel.FK_tEnregistrementLog_tEnregSteps" />
         <EntityTypeShape EntityType="MiddleOfficeModel.tLimitList" Width="1.5" PointX="5.625" PointY="21.375" IsExpanded="false" />
@@ -136,9 +136,15 @@
         <EntityTypeShape EntityType="MiddleOfficeModel.tInvestDeclErr" Width="1.5" PointX="15.375" PointY="15.875" IsExpanded="false" />
         <EntityTypeShape EntityType="MiddleOfficeModel.tODFaceAccs" Width="1.5" PointX="15.375" PointY="8.875" />
         <EntityTypeShape EntityType="MiddleOfficeModel.tQUIK_UK_Deal" Width="1.5" PointX="8.375" PointY="20.875" IsExpanded="false" />
-        <EntityTypeShape EntityType="MiddleOfficeModel.tPayment" Width="1.5" PointX="3.375" PointY="22.875" IsExpanded="true" />
+        <EntityTypeShape EntityType="MiddleOfficeModel.tPayment" Width="1.5" PointX="3.375" PointY="22.875" IsExpanded="false" />
         <EntityTypeShape EntityType="MiddleOfficeModel.tBank" Width="1.5" PointX="17.375" PointY="8.75" />
         <EntityTypeShape EntityType="MiddleOfficeModel.tRepoPrice" Width="1.5" PointX="15.375" PointY="17.75" />
+        <AssociationConnector Association="MiddleOfficeModel.FK_tPayment_tEnregistrement" />
+        <AssociationConnector Association="MiddleOfficeModel.FK_tEnregistrement_tTreaty" />
+        <EntityTypeShape EntityType="MiddleOfficeModel.tEnregExt" Width="1.5" PointX="15.125" PointY="25" />
+        <AssociationConnector Association="MiddleOfficeModel.FK_tEnregExt_tEnregistrement" />
+        <EntityTypeShape EntityType="MiddleOfficeModel.tQuikLimits" Width="1.5" PointX="17.375" PointY="17.75" />
+        <EntityTypeShape EntityType="MiddleOfficeModel.tDepoTreaty" Width="1.5" PointX="0.75" PointY="18.75" />
         </Diagram>
     </edmx:Diagrams>
   </edmx:Designer>

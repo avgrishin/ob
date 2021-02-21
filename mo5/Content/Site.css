@@ -204,3 +204,18 @@ ul.a_report {
     border-bottom-color: #00a19a;
     border-bottom-style: solid;
 }
+
+.homepage div ul li {
+}
+
+    .homepage div ul li:hover {
+        background-color: #666;
+        border-bottom-color: #00a19a;
+        border-bottom-style: solid;
+        border-bottom-width: 4px;
+        padding-bottom: 9px;
+    }
+
+        .homepage div ul li:hover a {
+            color: white;
+        }

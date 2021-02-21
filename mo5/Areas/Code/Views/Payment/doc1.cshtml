@@ -1,0 +1,124 @@
+﻿@model MO5.Areas.Code.Models.PaymentDoc
+@{
+  Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv=Content-Type content="text/html; charset=utf-8" />
+  <style>
+    .table1 tr td {
+      padding: 10px 0 0 0;
+    }
+
+    .table tr td {
+      border-top: 1px solid black;
+      border-left: 1px solid black;
+      padding: 3px;
+    }
+
+      .table tr td:last-child {
+        border-right: 1px solid black;
+      }
+
+    .table tr:last-child td {
+      border-bottom: 1px solid black;
+    }
+  </style>
+</head>
+<body>
+  <p style="text-align:right;">
+    <b>
+      <i>
+        Приложение № 12-б
+        <br />
+        <br />
+        К ДОГОВОРУ ОКАЗАНИЯ БРОКЕРСКИХ УСЛУГ
+        <br />
+        (ДОГОВОР ПРИСОЕДИНЕНИЯ)
+        <br />
+        Общества с ограниченной ответственностью
+        <br />
+        Инвестиционная Компания «КьюБиЭф»
+      </i>
+    </b>
+  </p>
+  <p>&nbsp;</p>
+  <p style="text-align:center">
+    <b>
+      Общество с ограниченной ответственностью<br />Инвестиционная Компания «КьюБиЭф»
+    </b>
+  </p>
+  <p>&nbsp;</p>
+  <p style="text-align:center">
+    <b>
+      ПОРУЧЕНИЕ КЛИЕНТА<br />
+      на вывод (отзыв) денежных средств
+    </b>
+  </p>
+  <p>&nbsp;</p>
+  <p>
+    <b>Клиент:</b> @Model.Client
+  </p>
+  <p>
+    <b>Договор:</b> @Model.Treaty
+  </p>
+  <p>
+    <b>
+      Денежные средства в сумме @(Model.Amount > 0 ? $"{Math.Floor(Model.Amount.Value):N2} руб." : "свободного остатка")
+    </b>
+  </p>
+  <p>
+    <b>
+      Реквизиты расчетного счета
+    </b>
+  </p>
+  <table class="table" cellspacing="0" width="100%">
+    <tr>
+      <td rowspan="2" width="40%">
+        Получатель:<br />
+        Наименование юридического лица или Ф.И.О физического лица<br />
+        ИНН
+      </td>
+      <td>@Model.NameO</td>
+    </tr>
+    <tr><td>@Model.INNO</td></tr>
+    <tr><td>Банк получателя</td><td>@Model.BankO</td></tr>
+    <tr><td>БИК банка получателя</td><td>@Model.BICO</td></tr>
+    <tr><td>Кор.счет банка получателя</td><td>@Model.KAccO</td></tr>
+    <tr>
+      <td rowspan="2" width="40%">
+        Расчетный счет получателя<br />
+      </td>
+      <td>
+        @if (string.IsNullOrEmpty(Model.RAccO))
+        {
+          <text>&nbsp;</text>
+        }
+        else
+        {
+          @Model.RAccO
+        }
+      </td>
+    </tr>
+    <tr><td>&nbsp;</td></tr>
+    <tr><td>Назначение платежа</td><td>@Model.Reference</td></tr>
+    <tr><td>Дополнительная информация</td><td>&nbsp;</td></tr>
+  </table>
+  <p>
+    Подпись Клиента / иное обозначение,<br />
+    приравниваемое к подписи клиента          ________________________
+  </p>
+  <div style="border:1px solid black;margin-top:10px">
+    <p style="text-align:center"><strong>ДЛЯ СЛУЖЕБНЫХ ОТМЕТОК БРОКЕРА</strong></p>
+    <p>
+      <table class="table1">
+        <tr><td colspan="4">Дата приема поручения «____» _____________20____ г. Время ____ час. ____ мин.</td></tr>
+        <tr><td>Сотрудник, зарегистрировавший Поручение </td><td>_________________________</td><td> / </td><td>_________________________</td></tr>
+        <tr><td></td><td style="text-align:center;padding-top: 0"><sup>(подпись)</sup></td><td></td><td style="text-align:center;padding-top: 0"><sup>(Ф.И.О.)</sup></td></tr>
+        <tr><td colspan="4">Регистрационный номер____________________________________________</td></tr>
+      </table>
+    </p>
+  </div>
+</body>
+</html>

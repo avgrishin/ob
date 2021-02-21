@@ -7,11 +7,10 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Entity.Core.Objects;
 using System.Data.Entity.Infrastructure;
-using System.Data.Entity.SqlServer;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Linq.Dynamic;
-using System.Web;
+using System.Threading.Tasks;
 
 namespace MO5.Areas.Code.Models
 {
@@ -57,6 +56,7 @@ namespace MO5.Areas.Code.Models
     IEnumerable<dynamic> UpdFinInst(List<tFinInst> data);
     bool DelFinInst(List<tFinInst> data);
     IEnumerable<dynamic> GetTreatyList(string filter, string sort, string dir);
+    IEnumerable<dynamic> GetDepoTreatyList(string filter, string sort, string dir);
     IEnumerable<dynamic> AddTreaty(List<tTreaty> data);
     IEnumerable<dynamic> UpdTreaty(List<tTreaty> data);
     bool DelTreaty(List<tTreaty> data);
@@ -92,15 +92,19 @@ namespace MO5.Areas.Code.Models
     double GetFundRate(int FundID, DateTime RateDate, int QuotingFundID);
     QtyNum GetModDealSetNum(int SecurityID, DateTime dt, int FundID, double Price, double Num, double Qty);
     IEnumerable<dynamic> GetRests<T>(IEnumerable<T> TreatyID, DateTime dt, bool withMD, Guid UserID, bool IsGroupSec);
+    IEnumerable<dynamic> GetRestLimits<T>(IEnumerable<T> TreatyID, bool withMD, Guid UserID, bool IsGroupSec);
+    IEnumerable<dynamic> AllocSec<T>(IEnumerable<T> TreatyID, int SecurityID, double Price, int Direction, decimal MinDS, Guid UserID);
     IEnumerable<dynamic> getTreatyByPortfs(List<int> id, string sort, string dir);
     ObjectResult<upRepCheckDecl_Result> RepCheckDecl(DateTime? dt);
     ObjectResult<upCheckDeclModDeal_Result> CheckDeclModDeal(DateTime dt, Guid? userID);
+    ObjectResult<upGetEmptyTreaties_Result> GetEmptyTreaties(DateTime? dt);
+    Task<int> ProcessLimits(MoneyLimits[] ml);
+    Task<int> ProcessDepoTreaty(List<DepoTreaty> dt);
   }
 
   public class InvestDeclRepository : IInvestDeclRepository
   {
-    private MiddleOfficeEntities db = new MiddleOfficeEntities() { };
-
+    private readonly MiddleOfficeEntities db = new MiddleOfficeEntities() { };
     public InvestDeclRepository()
     {
       db.Database.CommandTimeout = 600;
@@ -1244,7 +1248,7 @@ namespace MO5.Areas.Code.Models
               from e in _e.DefaultIfEmpty()
               join sr in db.tSecurityRate.Where(p => p.RateDate == dt) on t.ValueID equals sr.SecurityID into _sr
               from sr in _sr.DefaultIfEmpty()
-              join rp in db.tRepoPrice on new { dt, t.Reg3ID, t.ValueID } equals new {dt = (DateTime?)rp.RDate, Reg3ID = (int?)rp.TreatyID, ValueID = (int?)rp.SecurityID } into rp_
+              join rp in db.tRepoPrice on new { dt, t.Reg3ID, t.ValueID } equals new { dt = (DateTime?)rp.RDate, Reg3ID = (int?)rp.TreatyID, ValueID = (int?)rp.SecurityID } into rp_
               from rp in rp_.DefaultIfEmpty()
               select new
               {
@@ -1784,7 +1788,96 @@ namespace MO5.Areas.Code.Models
       var q = db.Database.SqlQuery<upGetRest_Result>("exec upGetRests @t, @dt, @withMD, @UserID, @IsGroupSec", parameters);
       return q;
     }
+    public IEnumerable<dynamic> GetRestLimits<T>(IEnumerable<T> TreatyID, bool withMD, Guid UserID, bool IsGroupSec)
+    {
+      DataTable tid = TreatyID.ToDataTable();
 
+      SqlParameter[] parameters = {
+        new SqlParameter
+        {
+          SqlDbType = SqlDbType.Structured,
+          Direction = ParameterDirection.Input,
+          ParameterName = "t",
+          TypeName = "dbo.typeID",
+          Value = tid
+        },
+        new SqlParameter
+        {
+          SqlDbType = SqlDbType.Bit,
+          Direction = ParameterDirection.Input,
+          ParameterName = "withMD",
+          Value = withMD
+        },
+        new SqlParameter
+        {
+          SqlDbType = SqlDbType.UniqueIdentifier,
+          Direction = ParameterDirection.Input,
+          ParameterName = "UserID",
+          Value = UserID
+        },
+        new SqlParameter
+        {
+          SqlDbType = SqlDbType.Bit,
+          Direction = ParameterDirection.Input,
+          ParameterName = "IsGroupSec",
+          Value = IsGroupSec
+        }
+      };
+      var q = db.Database.SqlQuery<upGetRest_Result>("exec upGetRestLimits @t, @withMD, @UserID, @IsGroupSec", parameters);
+      return q;
+    }
+    public IEnumerable<dynamic> AllocSec<T>(IEnumerable<T> TreatyID, int SecurityID, double Price, int Direction, decimal MinDS, Guid UserID)
+    {
+      DataTable tid = TreatyID.ToDataTable();
+
+      SqlParameter[] parameters = {
+        new SqlParameter
+        {
+          SqlDbType = SqlDbType.Structured,
+          Direction = ParameterDirection.Input,
+          ParameterName = "t",
+          TypeName = "dbo.typeID",
+          Value = tid
+        },
+        new SqlParameter
+        {
+          SqlDbType = SqlDbType.Int,
+          Direction = ParameterDirection.Input,
+          ParameterName = "SecurityID",
+          Value = SecurityID
+        },
+        new SqlParameter
+        {
+          SqlDbType = SqlDbType.Float,
+          Direction = ParameterDirection.Input,
+          ParameterName = "Price",
+          Value = Price
+        },
+        new SqlParameter
+        {
+          SqlDbType = SqlDbType.Int,
+          Direction = ParameterDirection.Input,
+          ParameterName = "Direction",
+          Value = Direction
+        },
+        new SqlParameter
+        {
+          SqlDbType = SqlDbType.Money,
+          Direction = ParameterDirection.Input,
+          ParameterName = "MinDS",
+          Value = MinDS
+        },
+        new SqlParameter
+        {
+          SqlDbType = SqlDbType.UniqueIdentifier,
+          Direction = ParameterDirection.Input,
+          ParameterName = "UserID",
+          Value = UserID
+        }
+      };
+      var q = db.Database.SqlQuery<dynamic>("exec upAllocSec @t, @SecurityID, @Price, @Direction, @MinDS, @UserID", parameters);
+      return q;
+    }
     public ObjectResult<upRepCheckDecl_Result> RepCheckDecl(DateTime? dt)
     {
       dt = dt ?? DateTime.Today;
@@ -1814,7 +1907,74 @@ namespace MO5.Areas.Code.Models
       if (sort != null) q = q.OrderBy(sort + (dir == "DESC" ? " descending" : ""));
       return q;
     }
+
+    public ObjectResult<upGetEmptyTreaties_Result> GetEmptyTreaties(DateTime? dt)
+    {
+      return db.upGetEmptyTreaties(dt);
+    }
+
+    public async Task<int> ProcessLimits(MoneyLimits[] ml)
+    {
+      await db.Database.ExecuteSqlCommandAsync("delete tQuikLimits");
+      foreach (var _ml in ml)
+      {
+        db.tQuikLimits.Add(new tQuikLimits { Balance = _ml.Balance, Client = _ml.Client, Curr = _ml.Curr });
+      }
+      return await db.SaveChangesAsync();
+    }
+
+    public IEnumerable<dynamic> GetDepoTreatyList(string filter, string sort, string dir)
+    {
+      var q1 = db.tDepoTreaty.AsQueryable();
+      if (!string.IsNullOrEmpty(filter))
+        q1 = q1.Where(p => p.Number.Contains(filter) || p.Client.Contains(filter));
+      var q = from tr in q1
+              select new
+              {
+                tr.ID,
+                tr.Number,
+                tr.Client,
+                tr.DateStart
+              };
+      if (sort != null) q = q.OrderBy(sort + (dir == "DESC" ? " descending" : ""));
+      return q;
+    }
+
+    public async Task<int> ProcessDepoTreaty(List<DepoTreaty> dt)
+    {
+      try
+      {
+        var sql = @"
+if object_id(N'tempdb..pDepoTreaty') is not null  drop table tempdb..pDepoTreaty
+create table tempdb..pDepoTreaty(
+  Number varchar(20),
+  DateStart datetime,
+  Client varchar(255)
+)
+";
+        await db.Database.ExecuteSqlCommandAsync(sql);
+        foreach (var _dt in dt)
+        {
+          await db.Database.ExecuteSqlCommandAsync(@"insert tempdb..pDepoTreaty values(@p0, @p1, @p2)", _dt.Number, _dt.DateStart, _dt.Client);
+        }
+        sql = @"
+merge tDepoTreaty trg
+using (select cast(Number as varchar(20)), cast(DateStart as smalldatetime), Client from tempdb..pDepoTreaty) src(Number, DateStart, Client) on src.Number = trg.Number
+when not matched then
+ insert(Number, DateStart, Client) values(Number, DateStart, Client)
+when matched then
+  update set DateStart = src.DateStart, Client = src.Client;
+";
+        await db.Database.ExecuteSqlCommandAsync(sql);
+      }
+      catch (Exception ex)
+      {
+        return 1;
+      }
+      return 0;
+    }
   }
+
 
   public class InvestDeclModule : NinjectModule
   {

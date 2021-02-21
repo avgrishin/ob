@@ -276,7 +276,7 @@ namespace MO5.Areas.Code.Models
         db.SaveChanges();
         return true;
       }
-      catch (DbUpdateException ex)
+      catch (DbUpdateException /*ex*/)
       {
         throw new Exception("Db update Exception");
       }
