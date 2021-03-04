@@ -84,7 +84,7 @@ namespace MO5.Controllers
       return new JsonnResult { Data = new { t = homeRepository.GetTBetweenWorkDates(dt1, dt2) } };
     }
 
-    [Authorize(Roles = "admin")]
+    [Authorize]
     [HttpPost]
     [ValidateInput(false)]
     public ActionResult ExportExcel(string f, string d)

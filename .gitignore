@@ -338,6 +338,13 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+
 Web.config
 Web.Debug.config
 Web.Release.config
+*.txt
+*.dacpac
+*.bacpac
+*.sql
+*.bak
+n*
