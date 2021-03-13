@@ -52,6 +52,7 @@ namespace MO5.Areas.Code.Models
     IEnumerable<dynamic> GetEnregStepLog(int? id);
     (bool success, string Message) AddPayment(List<int> id, DateTime date, int queue);
     PaymentDoc GetPayment(int ID);
+    int? GetStatusID(string param);
   }
 
   public class NotExecEnreg
@@ -122,7 +123,6 @@ namespace MO5.Areas.Code.Models
                  e.Qty,
                  DateDog = e.DayDogTypeID == 1 ? UserDbFunction.ufAddWorkDate(e.RecuDate, e.DaysDog) : SqlFunctions.DateAdd("d", e.DaysDog, e.RecuDate),
                  e.DateFact,
-                 //DateFact = UserDbFunction.ufAddWorkDate(e.RecuDate, e.DaysFact),
                  DayDogType = e.DayDogTypeID == 1 ? "рабочие" : "календарные",
                  Step = (int?)e.tEnregSteps.Step,
                  StepName = dts.Name,
@@ -133,26 +133,23 @@ namespace MO5.Areas.Code.Models
                  Comment3 = e.tEnregExt.Comment3,
                  Comment4 = e.tEnregExt.Comment4,
                  Comment5 = e.tEnregExt.Comment5,
+                 e.NDFL,
                  PaymentID = (int?)p.ID,
                  p.Amount,
-                 p.BankI,
                  p.BankO,
-                 p.BICI,
                  p.BICO,
-                 p.INNI,
                  p.INNO,
-                 p.KAccI,
                  p.KAccO,
-                 p.KPPI,
                  p.KPPO,
-                 p.NameI,
                  p.NameO,
                  p.Number,
                  p.PayDate,
                  p.Queue,
-                 p.RAccI,
                  p.RAccO,
-                 p.Reference
+                 p.Reference,
+                 p.IsChecked,
+                 p.DateCheck,
+                 e.InDateTime
                });
       if (sd ?? false)
         q = q.Where(p => p.IsDone == false);
@@ -190,6 +187,7 @@ namespace MO5.Areas.Code.Models
             InDateTime = DateTime.Now,
             MethodID = e.MethodID,
             Numero = e.Numero,
+            NDFL = e.NDFL,
             Original = e.Original,
             Qty = e.Qty,
             RecuDate = e.RecuDate,
@@ -210,26 +208,21 @@ namespace MO5.Areas.Code.Models
             var pmt = new tPayment
             {
               Amount = e.Amount,
-              BankI = e.BankI,
               BankO = e.BankO,
-              BICI = e.BICI,
               BICO = e.BICO,
               EnregID = en.ID,
               InDateTime = DateTime.Now,
-              INNI = e.INNI,
               INNO = e.INNO,
-              KAccI = e.KAccI,
               KAccO = e.KAccO,
-              KPPI = e.KPPI,
               KPPO = e.KPPO,
-              NameI = e.NameI,
               NameO = e.NameO,
               Number = e.Number,
               PayDate = e.PayDate,
               Queue = e.Queue,
-              RAccI = e.RAccI,
               RAccO = e.RAccO,
-              Reference = e.Reference
+              Reference = e.Reference,
+              IsChecked = e.IsChecked,
+              DateCheck = e.IsChecked == true ? DateTime.Now : (DateTime?)null
             };
             db.tPayment.Add(pmt);
             await db.SaveChangesAsync();
@@ -298,26 +291,23 @@ namespace MO5.Areas.Code.Models
                   Comment3 = e.tEnregExt.Comment3,
                   Comment4 = e.tEnregExt.Comment4,
                   Comment5 = e.tEnregExt.Comment5,
+                  e.NDFL,
                   PaymentID = (int?)p.ID,
                   p.Amount,
-                  p.BankI,
                   p.BankO,
-                  p.BICI,
                   p.BICO,
-                  p.INNI,
                   p.INNO,
-                  p.KAccI,
                   p.KAccO,
-                  p.KPPI,
                   p.KPPO,
-                  p.NameI,
                   p.NameO,
                   p.Number,
                   p.PayDate,
                   p.Queue,
-                  p.RAccI,
                   p.RAccO,
-                  p.Reference
+                  p.Reference,
+                  p.IsChecked,
+                  p.DateCheck,
+                  e.InDateTime
                 };
         return q;
       }
@@ -345,6 +335,10 @@ namespace MO5.Areas.Code.Models
               q1.DaysFact = e.DaysFact;
               q1.DocTypeID = e.DocTypeID;
               q1.EmployeID = e.EmployeID;
+              if (q1.StatusID == e.StatusID && q1.StatusID == GetStatusID("-1") && string.IsNullOrWhiteSpace(q1.FileName) && !string.IsNullOrWhiteSpace(e.FileName))
+                q1.StatusID = GetStatusID("0");
+              else
+                q1.StatusID = e.StatusID;
               q1.FileName = e.FileName;
               q1.FileNameO = e.FileNameO;
               q1.FileNameD = e.FileNameD;
@@ -364,8 +358,8 @@ namespace MO5.Areas.Code.Models
               q1.Temps = e.Temps;
               q1.TreatyID = e.TreatyID;
               q1.MethodID = e.MethodID;
-              q1.StatusID = e.StatusID;
               q1.DocNum = e.DocNum;
+              q1.NDFL = e.NDFL;
               await db.SaveChangesAsync();
               if (EnregTypeID == 0)
               {
@@ -375,52 +369,42 @@ namespace MO5.Areas.Code.Models
                   var pmt = new tPayment
                   {
                     Amount = e.Amount,
-                    BankI = e.BankI,
                     BankO = e.BankO,
-                    BICI = e.BICI,
                     BICO = e.BICO,
                     EnregID = e.ID,
                     InDateTime = DateTime.Now,
-                    INNI = e.INNI,
                     INNO = e.INNO,
-                    KAccI = e.KAccI,
                     KAccO = e.KAccO,
-                    KPPI = e.KPPI,
                     KPPO = e.KPPO,
-                    NameI = e.NameI,
                     NameO = e.NameO,
                     Number = e.Number,
                     PayDate = e.PayDate,
                     Queue = e.Queue,
-                    RAccI = e.RAccI,
                     RAccO = e.RAccO,
-                    Reference = e.Reference
+                    Reference = e.Reference,
+                    IsChecked = e.IsChecked,
+                    DateCheck = e.IsChecked == true ? DateTime.Now : (DateTime?)null
                   };
                   db.tPayment.Add(pmt);
                 }
                 else
                 {
                   q2.Amount = e.Amount;
-                  q2.BankI = e.BankI;
                   q2.BankO = e.BankO;
-                  q2.BICI = e.BICI;
                   q2.BICO = e.BICO;
                   q2.EnregID = e.ID;
                   q2.InDateTime = DateTime.Now;
-                  q2.INNI = e.INNI;
                   q2.INNO = e.INNO;
-                  q2.KAccI = e.KAccI;
                   q2.KAccO = e.KAccO;
-                  q2.KPPI = e.KPPI;
                   q2.KPPO = e.KPPO;
-                  q2.NameI = e.NameI;
                   q2.NameO = e.NameO;
                   q2.Number = e.Number;
                   q2.PayDate = e.PayDate;
                   q2.Queue = e.Queue;
-                  q2.RAccI = e.RAccI;
                   q2.RAccO = e.RAccO;
                   q2.Reference = e.Reference;
+                  q2.DateCheck = (q2.IsChecked != e.IsChecked && e.IsChecked == true) ? DateTime.Now : q2.IsChecked == e.IsChecked ? q2.DateCheck : (DateTime?)null;
+                  q2.IsChecked = e.IsChecked;
                 }
                 await db.SaveChangesAsync();
               }
@@ -500,26 +484,23 @@ namespace MO5.Areas.Code.Models
                 Comment3 = e.tEnregExt.Comment3,
                 Comment4 = e.tEnregExt.Comment4,
                 Comment5 = e.tEnregExt.Comment5,
+                e.NDFL,
                 PaymentID = (int?)p.ID,
                 p.Amount,
-                p.BankI,
                 p.BankO,
-                p.BICI,
                 p.BICO,
-                p.INNI,
                 p.INNO,
-                p.KAccI,
                 p.KAccO,
-                p.KPPI,
                 p.KPPO,
-                p.NameI,
                 p.NameO,
                 p.Number,
                 p.PayDate,
                 p.Queue,
-                p.RAccI,
                 p.RAccO,
-                p.Reference
+                p.Reference,
+                p.IsChecked,
+                p.DateCheck,
+                e.InDateTime
               };
       return q;
     }
@@ -862,7 +843,7 @@ namespace MO5.Areas.Code.Models
                 where u.UserName == Login
                 from r in u.aspnet_Roles
                 join g in db.aspnet_Users on r.RoleName equals g.UserName
-                from e in db.tEnregDTSteps 
+                from e in db.tEnregDTSteps
                 where e.EmailTo.Contains(g.aspnet_Membership.Email)
                 where e.DocTypeID == o.tEnregistrement1.DocTypeID
                 where e.Step == o.Step
@@ -1149,6 +1130,8 @@ namespace MO5.Areas.Code.Models
       return q.FirstOrDefault();
 
     }
+    public int? GetStatusID(string param) => db.tObjClassifier.FirstOrDefault(p => p.ParentID == 27203 && p.Comment == param)?.ObjClassifierID;
+
   }
 
   public class UserList

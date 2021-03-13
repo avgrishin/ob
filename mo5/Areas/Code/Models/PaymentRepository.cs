@@ -257,8 +257,9 @@ namespace MO5.Areas.Code.Models
               where ena.TreatyID == en.TreatyID && ena.ID != (id ?? -1)
               from pm in db.tPayment
               where pm.EnregID == ena.ID && pm.BICO != null
-              select new { pm.NameO, pm.INNO, pm.BankO, pm.BICO, pm.KAccO, pm.KPPO, pm.RAccO };
-      return q.Distinct();
+              orderby pm.ID descending
+              select new { pm.NameO, pm.INNO, pm.BankO, pm.BICO, pm.KAccO, pm.KPPO, pm.RAccO, pm.Reference, pm.IsChecked, pm.DateCheck };
+      return q.Take(1);
     }
 
     public bool GetRest(int PaymID)

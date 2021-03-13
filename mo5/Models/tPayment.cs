@@ -36,6 +36,8 @@ namespace MO5.Models
         public string Reference { get; set; }
         public Nullable<System.DateTime> InDateTime { get; set; }
         public Nullable<int> EnregID { get; set; }
+        public Nullable<bool> IsChecked { get; set; }
+        public Nullable<System.DateTime> DateCheck { get; set; }
     
         public virtual tEnregistrement tEnregistrement { get; set; }
     }

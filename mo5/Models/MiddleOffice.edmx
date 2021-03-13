@@ -313,6 +313,7 @@
           <Property Name="UserName" Type="varchar" MaxLength="50" />
           <Property Name="EnregTypeID" Type="int" Nullable="false" />
           <Property Name="FileNameG" Type="varchar" MaxLength="200" />
+          <Property Name="NDFL" Type="varchar" MaxLength="200" />
         </EntityType>
         <EntityType Name="tEnregistrementLog">
           <Key>
@@ -704,6 +705,8 @@
           <Property Name="Reference" Type="varchar" MaxLength="210" />
           <Property Name="InDateTime" Type="datetime" />
           <Property Name="EnregID" Type="int" />
+          <Property Name="IsChecked" Type="bit" />
+          <Property Name="DateCheck" Type="datetime" />
         </EntityType>
         <EntityType Name="tPortfolio">
           <Key>
@@ -4083,6 +4086,7 @@
           <NavigationProperty Name="tPayment" Relationship="MiddleOfficeModel.FK_tPayment_tEnregistrement" FromRole="tEnregistrement" ToRole="tPayment" />
           <NavigationProperty Name="tTreaty" Relationship="MiddleOfficeModel.FK_tEnregistrement_tTreaty" FromRole="tEnregistrement" ToRole="tTreaty" />
           <NavigationProperty Name="tEnregExt" Relationship="MiddleOfficeModel.FK_tEnregExt_tEnregistrement" FromRole="tEnregistrement" ToRole="tEnregExt" />
+          <Property Name="NDFL" Type="String" MaxLength="200" FixedLength="false" Unicode="false" />
         </EntityType>
         <Association Name="FK_tEnregistrement_tObjClassifier">
           <End Type="MiddleOfficeModel.tObjClassifier" Role="tObjClassifier" Multiplicity="0..1" />
@@ -4608,6 +4612,8 @@
           <Property Name="InDateTime" Type="DateTime" Precision="3" />
           <Property Name="EnregID" Type="Int32" />
           <NavigationProperty Name="tEnregistrement" Relationship="MiddleOfficeModel.FK_tPayment_tEnregistrement" FromRole="tPayment" ToRole="tEnregistrement" />
+          <Property Name="IsChecked" Type="Boolean" />
+          <Property Name="DateCheck" Type="DateTime" Precision="3" />
         </EntityType>
         <EntityType Name="tBank">
           <Key>
@@ -5559,6 +5565,7 @@
           <EntitySetMapping Name="tEnregistrement">
             <EntityTypeMapping TypeName="MiddleOfficeModel.tEnregistrement">
               <MappingFragment StoreEntitySet="tEnregistrement">
+                <ScalarProperty Name="NDFL" ColumnName="NDFL" />
                 <ScalarProperty Name="FileNameG" ColumnName="FileNameG" />
                 <ScalarProperty Name="EnregTypeID" ColumnName="EnregTypeID" />
                 <ScalarProperty Name="UserName" ColumnName="UserName" />
@@ -5877,6 +5884,8 @@
           <EntitySetMapping Name="tPayment">
             <EntityTypeMapping TypeName="MiddleOfficeModel.tPayment">
               <MappingFragment StoreEntitySet="tPayment">
+                <ScalarProperty Name="DateCheck" ColumnName="DateCheck" />
+                <ScalarProperty Name="IsChecked" ColumnName="IsChecked" />
                 <ScalarProperty Name="EnregID" ColumnName="EnregID" />
                 <ScalarProperty Name="InDateTime" ColumnName="InDateTime" />
                 <ScalarProperty Name="Reference" ColumnName="Reference" />

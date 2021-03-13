@@ -39,7 +39,11 @@ namespace MO5.Areas.Code.Controllers
     protected virtual ActionResult Index()
     {
       ViewBag.Title = _title;
-      return View("~/Areas/Code/Views/enreg/Index.cshtml", new EnregVM { EnregTypeID = EnregTypeID });
+      return View("~/Areas/Code/Views/enreg/Index.cshtml", new EnregVM
+      {
+        EnregTypeID = EnregTypeID,
+        BeginStatusID = enregRepository.GetStatusID("-1")
+      });
     }
 
     [Authorize(Roles = "jrpk, jrpki, jrpkr")]
@@ -380,7 +384,7 @@ namespace MO5.Areas.Code.Controllers
           {
             var stepId = enregRepository.GetEnregStepID(es.EnregID, EnregTypeID);
             var res = enregRepository.enrCourriel(es.EnregID, Url.RouteUrl("Code_default", new { id = stepId }, Request.Url.Scheme), Url.RouteUrl("Code_default", new { action = "GetFile", id = "" }, Request.Url.Scheme)/*(HttpContext.Request).Url.Authority*/, EnregTypeID);
-          //  return View("~/Areas/Code/Views/enreg/Confirm.cshtml");
+            //  return View("~/Areas/Code/Views/enreg/Confirm.cshtml");
           }
           if (ret > 0)
           {

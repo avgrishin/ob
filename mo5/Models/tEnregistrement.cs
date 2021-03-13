@@ -54,6 +54,7 @@ namespace MO5.Models
         public string UserName { get; set; }
         public int EnregTypeID { get; set; }
         public string FileNameG { get; set; }
+        public string NDFL { get; set; }
     
         public virtual tObjClassifier tObjClassifier { get; set; }
         public virtual tObjClassifier tObjClassifier1 { get; set; }

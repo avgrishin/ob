@@ -29,10 +29,12 @@ namespace MO5.Areas.Code.Models
     public decimal? Amount { get; set; }
     public int? Queue { get; set; }
     public string Reference { get; set; }
+    public bool? IsChecked { get; set; }
   }
 
   public class EnregVM
   {
     public int EnregTypeID { get; set; }
+    public int? BeginStatusID { get; set; }
   }
 }

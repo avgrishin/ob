@@ -162,16 +162,17 @@
         { name: 'Comment3', type: 'string' },
         { name: 'Comment4', type: 'string' },
         { name: 'Comment5', type: 'string' },
+        { name: 'NDFL', type: 'string' },
         { name: 'PaymentID', type: 'int' },
         { name: 'PayDate', type: 'date', dateFormat: "c" },
         { name: 'Number' },
-        { name: 'BICI', type: 'string' },
-        { name: 'RAccI', type: 'string' },
-        { name: 'BankI', type: 'string' },
-        { name: 'KAccI', type: 'string' },
-        { name: 'INNI', type: 'string' },
-        { name: 'KPPI', type: 'string' },
-        { name: 'NameI', type: 'string' },
+        //{ name: 'BICI', type: 'string' },
+        //{ name: 'RAccI', type: 'string' },
+        //{ name: 'BankI', type: 'string' },
+        //{ name: 'KAccI', type: 'string' },
+        //{ name: 'INNI', type: 'string' },
+        //{ name: 'KPPI', type: 'string' },
+        //{ name: 'NameI', type: 'string' },
         { name: 'BICO', type: 'string' },
         { name: 'BankO', type: 'string' },
         { name: 'RAccO', type: 'string' },
@@ -181,7 +182,11 @@
         { name: 'NameO', type: 'string' },
         { name: 'Amount', type: 'number' },
         { name: 'Reference', type: 'string' },
-        { name: 'Queue', type: 'number', defaultValue: 5 }
+        { name: 'Queue', type: 'number', defaultValue: 5 },
+        { name: 'UserName', type: 'string', persist: false },
+        { name: 'InDateTime', type: 'date', dateFormat: "c", persist: false },
+        { name: 'IsChecked', type: 'bool', allowNull: true },
+        { name: 'DateCheck', type: 'date', dateFormat: "c", persist: false }
       ]
     });
 
@@ -327,6 +332,9 @@
         { name: 'INNO', type: 'string' },
         { name: 'KPPO', type: 'string' },
         { name: 'NameO', type: 'string' },
+        { name: 'Reference', type: 'string' },
+        { name: 'IsChecked', type: 'bool' },
+        { name: 'DateCheck', type: 'date', dateFormat: "c", persist: false }
       ]
     });
 
@@ -457,7 +465,19 @@
             header: 'КПП',
             dataIndex: 'KPPO',
             width: 88
+          }, {
+            header: 'Проверено',
+            dataIndex: 'DateCheck',
+            xtype: 'datecolumn',
+            format: 'd.m.Y H:i:s',
+            width: 120
           }],
+
+          plugins: {
+            rowexpander: {
+              rowBodyTpl: new Ext.XTemplate('<p><b>Назначение:</b> {Reference}</p>')
+            }
+          },
           dockedItems: [{
             xtype: 'toolbar',
             dock: 'top',
@@ -603,7 +623,8 @@
                     'select': function (combo, record) {
                       combo.up('form').getForm().findField('FullOut').setDisabled(record.get('RequiredFlag') !== 1);
                     }
-                  }
+                  },
+                  allowBlank: false
                 }, {
                   xtype: 'fieldcontainer',
                   title: 'Вид документа',
@@ -687,12 +708,17 @@
                     queryMode: 'local',
                     emptyText: '*',
                     selectOnFocus: true,
-                    flex: 1
+                    flex: 1,
+                    allowBlank: false
                   }]
                 }, {
                   xtype: 'textfield',
                   name: 'Remarque',
                   fieldLabel: 'Комментарий'
+                }, {
+                  xtype: 'textfield',
+                  name: 'NDFL',
+                  fieldLabel: 'НДФЛ'
                 }, {
                   xtype: 'fieldcontainer',
                   layout: 'hbox',
@@ -907,9 +933,9 @@
                       regex: /^\d{20}$/
                     }, {
                       name: 'RAccO',
-                        fieldLabel: 'Расч. счет',
-                        labelAlign: 'right',
-                        labelWidth: 65,
+                      fieldLabel: 'Расч. счет',
+                      labelAlign: 'right',
+                      labelWidth: 65,
                       flex: 1,
                       regex: /^\d{20}$/
                     }]
@@ -936,8 +962,54 @@
                   name: 'Reference',
                   fieldLabel: 'Назначение',
                   labelAlign: 'top'
+                }, {
+                  xtype: 'fieldcontainer',
+                  layout: 'hbox',
+                  items: [{
+                    name: 'IsChecked',
+                    boxLabel: 'Проверено',
+                    labelAlign: 'left',
+                    xtype: 'checkboxfield',
+                    labelWidth: 60,
+                    margin: '0 10 0 0'
+                  }, {
+                      xtype: 'datefield',
+                      labelAlign: 'right',
+                    fieldLabel: 'Дата проверки',
+                    name: 'DateCheck',
+                    readOnly: true,
+                    format: 'd.m.Y H:i:s'
+                  }]
                 }],
                 hidden: @(Model.EnregTypeID == 0 ? "fals" : "tru")e
+              }, {
+                tag: 3,
+                title: 'Инфо',
+                bodyPadding: 10,
+                layout: 'anchor',
+                border: false,
+                defaults: {
+                  labelAlign: 'right',
+                  anchor: '100%'
+                },
+                items: [{
+                  xtype: 'fieldcontainer',
+                  layout: 'hbox',
+                  items: [{
+                    xtype: 'datefield',
+                    fieldLabel: 'Изменено',
+                    name: 'InDateTime',
+                    readOnly: true,
+                    format: 'd.m.Y H:i:s'
+                  }, {
+                    xtype: 'textfield',
+                    fieldLabel: 'Пользователь',
+                    name: 'UserName',
+                    readOnly: true,
+                    margin: '0 0 0 10',
+                    width: 300
+                  }]
+                }]
               }]
             }]
           }],
@@ -989,7 +1061,7 @@
           listeners: {
             scope: this,
             sel: function (text, id, client) {
-              //console.log(data);      
+              //console.log(data);
               form.findField('trNameBrief').setValue(text);
               form.findField('TreatyID').setValue(id);
               var nameo = form.findField('NameO');
@@ -1217,7 +1289,7 @@
         });
         this.callParent();
       },
-      
+
       setTreatyNumber: function (value) {
         if (value)
           this.down('#tfFind').setValue(value);
@@ -1805,6 +1877,11 @@
             width: 195,
             tdCls: 'wrap-text'
           }, {
+            header: 'НДФЛ',
+            dataIndex: 'NDFL',
+            width: 195,
+            tdCls: 'wrap-text'
+          }, {
             header: 'Дней на исполнение',
             dataIndex: 'DaysDog',
             width: 80
@@ -2145,7 +2222,7 @@
 
       onAddClick: function () {
         var me = this;
-        var rec = new Enreg({ RecuDate: Ext.Date.clearTime(new Date(), false), StatusID: 27205, DayDogTypeID: 1 });
+        var rec = new Enreg({ RecuDate: Ext.Date.clearTime(new Date(), false), StatusID: @Model.BeginStatusID, DayDogTypeID: 1 }); 27205
         if (!me.wini) {
           me.onCreateWin();
         }
@@ -2204,8 +2281,8 @@
         this.down('#confirm').setDisabled(selections.length === 0);
         this.down('#btnLog').setDisabled(selections.length === 0);
         this.down('#addpaym').setDisabled(selections.length === 0);
-        this.down('#poruch').setDisabled(selections.length === 0);
-        this.down('#raspor').setDisabled(selections.length === 0);
+        this.down('#poruch').setDisabled(selections.length === 0 || (selections.length > 0 && selections[0].get('trNameBrief').substring(0,2) === 'ДУ'));
+        this.down('#raspor').setDisabled(selections.length === 0 || (selections.length > 0 && selections[0].get('trNameBrief').substring(0, 2) !== 'ДУ'));
         this.selChg = true;
         if (selections.length > 0) {
           var grid = this.up('viewport').down('#steplog');
